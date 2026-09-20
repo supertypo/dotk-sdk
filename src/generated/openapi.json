@@ -1,0 +1,2057 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "dotk.name api",
+    "description": "Live `name → owner` registry with self-proving answers: every response carries what a caller needs to re-verify it against any Kaspa node in one query (deed address + registry covenant id).",
+    "contact": {
+      "name": "s@dotk.name"
+    },
+    "license": {
+      "name": "Proprietary"
+    },
+    "version": "0.1.0"
+  },
+  "servers": [
+    {
+      "url": "/v1"
+    }
+  ],
+  "paths": {
+    "/addresses/{address}": {
+      "get": {
+        "tags": [
+          "registry"
+        ],
+        "description": "Get an address's names",
+        "operationId": "get_address",
+        "parameters": [
+          {
+            "name": "address",
+            "in": "path",
+            "description": "Kaspa address of any owner kind",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnerResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Unsupported address kind",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The database could not be read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/genesis": {
+      "get": {
+        "tags": [
+          "deployment"
+        ],
+        "description": "Get the deployment manifest",
+        "operationId": "get_genesis",
+        "responses": {
+          "200": {
+            "description": "genesis.json verbatim: template bytecode, abi and params",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Manifest"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "description": "Get health details",
+        "operationId": "get_health",
+        "parameters": [
+          {
+            "name": "detail",
+            "in": "query",
+            "description": "Default `false`: the self-test verdict alone. `true`: the failure coordinates and repair counts with it.",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Healthy: caught up (or behind for under 10 s) and proven valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`detail` is neither `true` nor `false`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Unhealthy, same body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/keys/{key}": {
+      "get": {
+        "tags": [
+          "registry"
+        ],
+        "description": "Get a key's neighbourhood",
+        "operationId": "get_key",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "description": "Name key: 64 hex characters, `blake3(name)`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. An unused key answers `kind: \"free\"`, never 404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KeyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Not a 32-byte hex key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The database could not be read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/keys/{key}/history": {
+      "get": {
+        "tags": [
+          "registry"
+        ],
+        "description": "Get a key's history",
+        "operationId": "get_key_history",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "description": "Name key: 64 hex characters, `blake3(name)`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Entries per page, 1–100. Default 5.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Entries to skip, newest first. Default 0.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. A key nothing is known about answers an empty list, never 404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistoryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Not a 32-byte hex key, or a limit outside 1–100",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The database could not be read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/keyspace": {
+      "get": {
+        "tags": [
+          "registry"
+        ],
+        "description": "Get the keyspace summary",
+        "operationId": "get_keyspace",
+        "responses": {
+          "200": {
+            "description": "Success. An empty registry answers all-zero buckets, never 404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KeyspaceResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The database could not be read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/names/{name}": {
+      "get": {
+        "tags": [
+          "registry"
+        ],
+        "description": "Get a name's owner",
+        "operationId": "get_name",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "description": "Name, with or without `.k`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NameResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Not a valid name",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not registered",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The database could not be read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/names/{name}/key": {
+      "get": {
+        "tags": [
+          "registry"
+        ],
+        "description": "Get a name's key neighbourhood",
+        "operationId": "get_key_by_name",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "description": "Name, with or without `.k`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. An unregistered name answers `kind: \"free\"`, never 404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KeyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Not a valid name",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The database could not be read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/owners/{ownerType}/{owner}": {
+      "get": {
+        "tags": [
+          "registry"
+        ],
+        "description": "Get an owner's names",
+        "operationId": "get_owner",
+        "parameters": [
+          {
+            "name": "ownerType",
+            "in": "path",
+            "description": "Owner scheme byte in decimal: 0 p2pk-schnorr, 3 p2sh, 4 covenant, 133/134 p2pk-ecdsa",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "owner",
+            "in": "path",
+            "description": "Owner payload: 64 hex characters",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. An owner holding nothing answers an empty list, never 404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnerResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Not an owner scheme this registry mints, or not a 32-byte hex payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The database could not be read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/snapshot": {
+      "get": {
+        "tags": [
+          "snapshot"
+        ],
+        "description": "Get the registry snapshot",
+        "operationId": "get_snapshot",
+        "parameters": [
+          {
+            "name": "proven",
+            "in": "query",
+            "description": "Default `true`: the self-test-proven snapshot. `false`: a live, unproven export.",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "events",
+            "in": "query",
+            "description": "Default `true`: carry the resume section. `false`: leave `events` empty, which is what a client that only reads `deeds` wants.",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The snapshot; `proven` says which kind it is",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Snapshot"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`proven` or `events` is neither `true` nor `false`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The database could not be read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Nothing processed yet; or (proven) no proof yet or the last one expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/spenders/{spenderType}/{spender}/cards": {
+      "get": {
+        "tags": [
+          "registry"
+        ],
+        "description": "Get the cards a spender may sweep",
+        "operationId": "get_spender_cards",
+        "parameters": [
+          {
+            "name": "spenderType",
+            "in": "path",
+            "description": "Key-owned scheme byte in decimal: 0 p2pk-schnorr, 133/134 p2pk-ecdsa",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "spender",
+            "in": "path",
+            "description": "Spender key payload: 64 hex characters",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. Every unswept card the spender minted, live or retired; a spender with none answers an empty list, never 404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpenderCardsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Not a key-owned scheme, or not a 32-byte hex payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The database could not be read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "BlockRef": {
+        "type": "object",
+        "description": "The last fully processed chain block: the checkpoint's live metadata.",
+        "required": [
+          "hash",
+          "daaScore",
+          "blueScore",
+          "timestamp"
+        ],
+        "properties": {
+          "blueScore": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "daaScore": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "hash": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Header timestamp, ms since epoch.",
+            "minimum": 0
+          }
+        }
+      },
+      "CardOut": {
+        "type": "object",
+        "description": "One card: a name's records object, as the indexer observed it minted. The\nindexer proves nothing about a card: `cardAddress` is the anchor a client probes against its\nown node (rule 1), and `outpointTxid` with `outpointIndex` against the deed's outpoint\n(rule 2). Rules 3 and 4 hold for every card served, since the blob was checked against\n`recordsHash` on the way in.",
+        "required": [
+          "key",
+          "outpointTxid",
+          "outpointIndex",
+          "value",
+          "spenderType",
+          "spender",
+          "spenderAddress",
+          "cardAddress",
+          "recordsHash",
+          "blob",
+          "live"
+        ],
+        "properties": {
+          "blob": {
+            "type": "string",
+            "description": "The record blob, hex, in deterministic CBOR."
+          },
+          "cardAddress": {
+            "type": "string",
+            "description": "The card's own P2SH address: where the UTXO sits, and the anchor for rule 1."
+          },
+          "key": {
+            "type": "string"
+          },
+          "live": {
+            "type": "boolean",
+            "description": "Whether the card speaks for its name now: it is output 1 of the transaction the deed's\ncurrent UTXO came from, and unswept. Always true on a name or owner lookup; a spender\nlookup lists the retired ones too, which are the leftovers to sweep."
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The bare name of the deed the card's key is filed under. Absent only on a spender\nlookup where the key has no row."
+          },
+          "outpointIndex": {
+            "type": "integer",
+            "format": "int32",
+            "description": "The card's output index in that transfer: 1, the index rule 2 pins.",
+            "minimum": 0
+          },
+          "outpointTxid": {
+            "type": "string",
+            "description": "The minting transfer: the card's UTXO is output `outpointIndex` of it."
+          },
+          "records": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "The blob decoded, when it decodes: ENSIP-5 text records, local flags such as `primary`,\nand opaque values for anything else, which a client keeps. Absent for a blob that is not\na record map, which a client may still hash.",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/RecordValueOut"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "recordsHash": {
+            "type": "string",
+            "description": "`blake3(blob)`, the hash the card's redeem script commits to."
+          },
+          "spender": {
+            "type": "string"
+          },
+          "spenderAddress": {
+            "type": "string"
+          },
+          "spenderType": {
+            "type": "integer",
+            "format": "int32",
+            "description": "The key that may sweep the card: a key-owned scheme byte, its payload, and the address.",
+            "minimum": 0
+          },
+          "value": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
+      "DayCount": {
+        "type": "object",
+        "description": "One UTC day and how many names were registered on it.",
+        "required": [
+          "day",
+          "count"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "day": {
+            "type": "string",
+            "description": "The day in `YYYY-MM-DD`, UTC, from the accepting block's header timestamp."
+          }
+        }
+      },
+      "DeedOut": {
+        "type": "object",
+        "description": "One deed: the state that decides its address, plus the provenance the indexer observed.\n\nThe address hashes from `status ‖ key ‖ ownerType ‖ owner ‖ name`, of which `key` is the\nenclosing [`KeyResponse`]'s and `name` is that response's name padded, so a client rebuilding\nthe preimage reads both from one place rather than from two that could disagree. What is here\nis what the enclosing body does not already say.\n\nAn ACTIVE deed carries `ownerType` and `owner`; a PENDING one carries `claim` instead, because\nits owner field holds the claim hash and calling those bytes an owner would be naming them\ntwice, once wrongly. The same split [`HistoryEntry`] and the snapshot's rows already use.",
+        "required": [
+          "status",
+          "deedAddress"
+        ],
+        "properties": {
+          "acceptedDaa": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "minimum": 0
+          },
+          "claim": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "PENDING only: the claim hash the split committed to. An evict has to rebuild\n`{PENDING, key, 0x00, claim, zero}` as its redeem preimage, and the claim is underivable\nfrom anything public, so this is the only place it comes back from."
+          },
+          "deedAddress": {
+            "type": "string",
+            "description": "Where this deed lives: `P2SH(deed template ‖ the state above)`. Served because it is the\nanswer a caller acts on, the address they probe against their own node, and derived here\nfrom state a client could derive it from itself, so the two can only agree. A history\nentry carries no address on purpose: those deeds are spent, and an address nothing sits\nat proves nothing."
+          },
+          "outpointIndex": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "minimum": 0
+          },
+          "outpointTxid": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The deed UTXO as last observed, and the DAA score of the block that accepted this deed's\nsplit, carried forward through activate and transfer, so on an ACTIVE deed it is when the\nname was registered and on a PENDING one it is also the evictor's maturity clock\n(`acceptedDaa + tEvict` against virtual DAA). Absent on a deed whose split this indexer\nnever observed."
+          },
+          "owner": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "ownerType": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "ACTIVE only: the KCC-2 scheme byte and the owner payload it names.",
+            "minimum": 0
+          },
+          "status": {
+            "type": "string",
+            "description": "The on-chain status byte's name: `Pending` or `Active`. The vocabulary the address\nhashes from, which [`KeyResponse::kind`] deliberately is not.",
+            "example": "Active"
+          }
+        }
+      },
+      "ErrorCode": {
+        "type": "string",
+        "description": "Why a request failed, as a closed set a client can branch on.\n\nThe prose in `error` is for a person reading a log; this is for the code deciding what to do\nnext, and the two must never be the same field. Without it a caller telling \"this name is\nmalformed\" from \"this page size is out of range\" has to match on English, which changes\nwhenever the message is reworded.\n\nA code implies its status, so the pairing cannot drift: there is no call site free to answer\n`not_found` with a 500.",
+        "enum": [
+          "invalid_name",
+          "invalid_address",
+          "invalid_key",
+          "invalid_owner_type",
+          "invalid_query",
+          "not_found",
+          "not_ready",
+          "stale_proof",
+          "internal"
+        ]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "required": [
+          "code",
+          "error"
+        ],
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/ErrorCode",
+            "description": "One of a closed set, for branching. Served as an enum rather than a bare string, so a\ngenerated client gets the set instead of having to be told it."
+          },
+          "error": {
+            "type": "string",
+            "description": "The same failure in prose, for a person. Never parsed."
+          }
+        }
+      },
+      "ExportCard": {
+        "type": "object",
+        "description": "A cards row, shaped like the database row. Binary fields hex.",
+        "required": [
+          "txid",
+          "idx",
+          "key",
+          "records",
+          "spenderType",
+          "spender",
+          "blob",
+          "value"
+        ],
+        "properties": {
+          "blob": {
+            "type": "string"
+          },
+          "idx": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "key": {
+            "type": "string"
+          },
+          "records": {
+            "type": "string"
+          },
+          "spender": {
+            "type": "string"
+          },
+          "spenderType": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "txid": {
+            "type": "string"
+          },
+          "value": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
+      "ExportCardMark": {
+        "type": "object",
+        "required": [
+          "txid",
+          "idx",
+          "existed"
+        ],
+        "properties": {
+          "existed": {
+            "type": "boolean"
+          },
+          "idx": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "sweptAt": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "minimum": 0
+          },
+          "txid": {
+            "type": "string"
+          }
+        }
+      },
+      "ExportDeed": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ExportRow"
+          },
+          {
+            "type": "object",
+            "required": [
+              "key"
+            ],
+            "properties": {
+              "key": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "description": "A deeds row, shaped like the database row. `key` hex; binary fields hex."
+      },
+      "ExportEvent": {
+        "type": "object",
+        "required": [
+          "blockHash",
+          "seq",
+          "blueScore",
+          "key"
+        ],
+        "properties": {
+          "blockHash": {
+            "type": "string"
+          },
+          "blueScore": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "key": {
+            "type": "string"
+          },
+          "prev": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ExportRow",
+                "description": "The deed pre-image; absent = the row did not exist before the event."
+              }
+            ]
+          },
+          "prevCards": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExportCardMark"
+            },
+            "description": "Journal images of the card rows the event wrote: `existed: false` for a mint (undo\ndeletes the row), otherwise the `sweptAt` the row carried before the event marked it."
+          },
+          "prevGaps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExportGap"
+            },
+            "description": "Pre-images of the gap rows the event wrote. An entry without `hi` means no row existed\nat that `lo`, which undo turns back into a delete. A split always creates one, so an\nimporter that dropped this would inherit a journal it cannot undo exactly."
+          },
+          "seq": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ExportGap": {
+        "type": "object",
+        "required": [
+          "lo"
+        ],
+        "properties": {
+          "hi": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "lo": {
+            "type": "string"
+          },
+          "outpointIndex": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "minimum": 0
+          },
+          "outpointTxid": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "ExportRow": {
+        "type": "object",
+        "required": [
+          "kind"
+        ],
+        "properties": {
+          "acceptedDaa": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "minimum": 0
+          },
+          "claim": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "kind": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "outpointIndex": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "minimum": 0
+          },
+          "outpointTxid": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "owner": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "ownerType": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "minimum": 0
+          },
+          "value": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
+      "GapOut": {
+        "type": "object",
+        "description": "One gap, hex-encoded: the open interval `(lo, hi)` of unregistered keyspace, which is the\nwhole state region its P2SH address hashes from.",
+        "required": [
+          "lo",
+          "hi"
+        ],
+        "properties": {
+          "hi": {
+            "type": "string"
+          },
+          "lo": {
+            "type": "string"
+          }
+        }
+      },
+      "GapsByWidth": {
+        "type": "object",
+        "description": "How wide the gaps are, as multiples of the average gap rather than in raw keyspace units.\n\nThat normalization is the point: the average gap shrinks as names are registered, but the\ndistribution around it does not move, so the shape stays comparable at 100 names and at\n100k. With uniform keys it is an exponential decay, the spacings of a Poisson process,\nso a deviation from it is worth looking at.",
+        "required": [
+          "counts",
+          "bucketsPerAverage",
+          "wider"
+        ],
+        "properties": {
+          "bucketsPerAverage": {
+            "type": "integer",
+            "format": "int64",
+            "description": "How many buckets span one average gap: 4, so each is a quarter of it."
+          },
+          "counts": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "description": "Gaps per bucket, narrowest first. Bucket `i` holds the gaps at least\n`i / bucketsPerAverage` and under `(i + 1) / bucketsPerAverage` times the average."
+          },
+          "wider": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Gaps wider than the last bucket. Deliberately not a final entry in `counts`: \"everything\nabove\" is not the same kind of value as \"this range\", and a client summing the array\nwould silently misplace it."
+          }
+        }
+      },
+      "HealthResponse": {
+        "type": "object",
+        "required": [
+          "healthy",
+          "netBps",
+          "active",
+          "pending",
+          "ownerUnknown",
+          "tipDistance",
+          "caughtUp",
+          "registryCovenantId",
+          "network"
+        ],
+        "properties": {
+          "active": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "caughtUp": {
+            "type": "boolean",
+            "description": "Whether the indexer is level with the chain right now: `lastBlock` is under 10 s old\nand under 60 s of blocks behind `tipBlueScore` less `tipDistance`. Computed on every\nanswer, never latched, so an indexer that reached the tip and then stalled says\n`false` again. `healthy` tolerates 10 s of `false` before it follows."
+          },
+          "healthy": {
+            "type": "boolean"
+          },
+          "historySeq": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "The registry's change marker: `max(history.id)`, or `null` before anything has\nhappened. A client polls this to decide whether re-reading `/snapshot` would tell it\nanything new. The three counts above cannot answer that, because a transfer moves\nnone of them.\n\nCompare for difference, not for order. Undo deletes a removed block's history rows, so\na reorg lowers it before the sequence carries it past its old high-water mark. Any\nfuture retention on `history` deletes at the oldest end, which does not move a maximum."
+          },
+          "journalCoverage": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Lowest blue score the journal can undo exactly (0 = full coverage by construction);\n`null` while an imported snapshot's journal-less history is still the only history,\nthat is, before this process has journaled a block of its own.",
+            "minimum": 0
+          },
+          "lastBlock": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BlockRef"
+              }
+            ]
+          },
+          "netBps": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The network's nominal block rate, which turns a blue-score distance into seconds.",
+            "minimum": 0
+          },
+          "network": {
+            "type": "string",
+            "description": "The chain the manifest was deployed on, as the manifest spells it. The other half of the\nidentity above: two deployments of one covenant id on different networks are different\nregistries, and an address only means anything against a named network."
+          },
+          "ownerUnknown": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Rows whose key is proven registered but whose owner the chain has refuted or which\nwere never observed: the healing backlog."
+          },
+          "pending": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "registryCovenantId": {
+            "type": "string",
+            "description": "Which registry this indexer serves. A client pins its own at build time and compares;\nan indexer serving a different deployment is unusable to it, and this is the earliest\npoint that can be known, before any answer has been acted on."
+          },
+          "selfTest": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SelfTestSummary",
+                "description": "The last self-test's verdict, or `null` before the first run has finished."
+              }
+            ]
+          },
+          "selfTestDetail": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SelfTestDetail",
+                "description": "Where that run failed, present only for `?detail=true` and only once a run has finished."
+              }
+            ]
+          },
+          "tipBlueScore": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "The sink's blue score as last observed, or `null` before the first observation.\n`tipBlueScore - tipDistance - lastBlock.blueScore` is how far behind this indexer is\n(the node withholds `tipDistance` on purpose, so that much is level, not late); divided\nby `netBps` it is that distance as a duration. It freezes at its last value while the\nnode is unreachable, so it reads optimistically during a node outage.",
+            "minimum": 0
+          },
+          "tipDistance": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Confirmation depth the fetch loop polls at (`--vcp-tip-distance`).",
+            "minimum": 0
+          }
+        }
+      },
+      "HistoryEntry": {
+        "type": "object",
+        "description": "One thing that happened to a key, and what the deed looked like immediately afterwards.\n\nThe POST-image, not a diff: a reader wants \"transferred to X\", and reconstructing that from\na pre-image plus the next entry makes every row depend on its neighbour. `kind` is absent\nexactly when the operation ended the deed, a release or an evict, which is the one case\nwith no state to describe.",
+        "required": [
+          "op",
+          "seq",
+          "blueScore",
+          "daaScore",
+          "blockTime",
+          "blockHash",
+          "txid"
+        ],
+        "properties": {
+          "blockHash": {
+            "type": "string"
+          },
+          "blockTime": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "blueScore": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The accepting chain block, and when it says this happened. `blockTime` is the header\ntimestamp in milliseconds; `daaScore` is the clock every age in this API is measured\nagainst, so a caller ages a history entry exactly as it ages a deed.",
+            "minimum": 0
+          },
+          "cardChange": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "What the event did to the name's card: `set`, `updated` or `deleted`. Absent where it\nleft the records alone, which is most events and every one that predates a name's first\ncard. Spelled apart from the `card` a deed is served with, which is the card itself.\nRecorded when the event was observed, since neither half survives being asked for later:\nan update spends the card it replaces, and a swept row is eventually purged."
+          },
+          "claim": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "PENDING only: the claim hash the split committed to."
+          },
+          "daaScore": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "kind": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The row's kind after the event: `active`, `pending` or `ownerUnknown`. Absent when the\ndeed ended here."
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "op": {
+            "type": "string",
+            "description": "`register` · `activate` · `transfer` · `release` · `evict` · `discover` · `sweep`.\nA `sweep` is a card spent on its own, which takes a name's records away and leaves its\ndeed where it was."
+          },
+          "owner": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The KCC-2 owner payload, hex. Present only where the entry left the deed ACTIVE, since\nthat is the only post-state that carries an owner. No address form is served: an address\nis a pure function of the pair, so a client derives it from its own engine rather than\nadopting one here."
+          },
+          "ownerType": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "minimum": 0
+          },
+          "seq": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Apply order within the accepting block. Two events on one key in one block are served\nnewest first by this, so a reader reproduces the page's order instead of taking it."
+          },
+          "txid": {
+            "type": "string",
+            "description": "The transaction that did it: the receipt, and what a block explorer is opened on."
+          }
+        }
+      },
+      "HistoryResponse": {
+        "type": "object",
+        "description": "One key's history, newest first, one page at a time.\n\nThis is what this indexer observed, which is not the same as everything that ever happened:\na registry predates any given mirror, and Kaspa prunes the blocks an older past would have\nto be read from. `complete` says which it is, true only when the oldest entry held is the\nkey's own `register`, so a partial history is visible as partial rather than presented as\nthe whole story.",
+        "required": [
+          "key",
+          "total",
+          "limit",
+          "offset",
+          "complete",
+          "entries",
+          "registryCovenantId"
+        ],
+        "properties": {
+          "complete": {
+            "type": "boolean",
+            "description": "Whether the oldest entry held is the key's own registration. `false` on an empty\nhistory too: nothing is known, which is not the same as nothing having happened."
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HistoryEntry"
+            }
+          },
+          "key": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "offset": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "registryCovenantId": {
+            "type": "string"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64",
+            "description": "How many entries this key has in total, so a caller can page without probing for the end.",
+            "minimum": 0
+          }
+        }
+      },
+      "KeyResponse": {
+        "type": "object",
+        "description": "Everything a client needs to act on one key without downloading the registry: the key's\nown deed and whichever gaps a transaction touching it must co-spend.",
+        "required": [
+          "key",
+          "kind",
+          "registryCovenantId",
+          "proven"
+        ],
+        "properties": {
+          "covering": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/GapOut",
+                "description": "`kind: \"free\"` only: the gap whose open interval strictly contains the key, the UTXO\na split has to spend."
+              }
+            ]
+          },
+          "deed": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DeedOut",
+                "description": "The key's own deed. Absent for `kind: \"free\"`, and for `ownerUnknown`, whose whole\nmeaning is that no state can be derived."
+              }
+            ]
+          },
+          "key": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "description": "The indexer's row knowledge: `active`, `pending`, `ownerUnknown` or `free`.\nDeliberately a different vocabulary from `deed.status`, which is what is actually\non-chain: `ownerUnknown` means \"a deed exists here whose owner I cannot name\" and has\nno on-chain counterpart at all. Mapping this onto a status byte derives a dead\naddress; read `deed.status` for that, always."
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The bare on-chain name; absent when the row does not carry one (PENDING rows are\nname-blind by construction)."
+          },
+          "neighbours": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/NeighbourGaps",
+                "description": "Occupied keys only: the two gaps flanking the key. Together with the deed they are the\nwhole exit shape, so a release, the one owner operation that needs structure at all,\ntakes a single round trip. A live key is a gap bound, never inside one, so `covering`\nand `neighbours` never both appear."
+              }
+            ]
+          },
+          "proven": {
+            "type": "boolean",
+            "description": "Whether the last self-test proved this neighbourhood against the UTXO set: it passed\noverall and left no residual blind spot bracketing this key.\n\nA coverage signal, not a freshness one. It is up to `--selftest-interval` (10 min)\nold, so it says nothing about events since; the client's own probe of the derived\naddress against a node remains the only real arbiter. `provenAt` is when that\nself-test finished, so a stale proof is visible rather than implied."
+          },
+          "provenAt": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "minimum": 0
+          },
+          "registryCovenantId": {
+            "type": "string"
+          }
+        }
+      },
+      "KeysByPrefix": {
+        "type": "object",
+        "description": "Where the registered keys fall: one bucket per leading key byte, so 256 of them, in bucket\norder. Every array is that long.\n\nSplit by row kind rather than pre-merged, because which kinds a UI shows together is its\ndecision (`web/` draws PENDING and owner-unknown as one series, since neither resolves a\nname to an owner) and baking that in would deny every other client the choice.\n\nMerging adjacent pairs is exact: the result is the same histogram over one bit less of key\nprefix, so a client wanting a coarser view rebins this instead of asking for one.",
+        "required": [
+          "active",
+          "pending",
+          "ownerUnknown"
+        ],
+        "properties": {
+          "active": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          "ownerUnknown": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          "pending": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        }
+      },
+      "KeyspaceResponse": {
+        "type": "object",
+        "description": "The whole keyspace at a glance: the two distributions over it, and what they add up to.\nAn aggregate a browser can poll, where `/snapshot` is a multi-megabyte export that answers the\nsame questions only by being downloaded whole.\n\nAlways a live read of the database, never the self-test-proven snapshot: there is no\n`proven` here because there is nothing to claim. `lastBlock` is what it is current to.",
+        "required": [
+          "registryCovenantId",
+          "totals",
+          "keysByPrefix",
+          "gapsByWidth",
+          "registrationsByDay"
+        ],
+        "properties": {
+          "gapsByWidth": {
+            "$ref": "#/components/schemas/GapsByWidth"
+          },
+          "keysByPrefix": {
+            "$ref": "#/components/schemas/KeysByPrefix"
+          },
+          "lastBlock": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BlockRef",
+                "description": "The last processed chain block, which is what this answer is current to."
+              }
+            ]
+          },
+          "registrationsByDay": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DayCount"
+            },
+            "description": "Registrations per UTC day, oldest first, holding only the days that had one. Counted\nfrom the journal of `register` events, so a name released or evicted since still counts\non the day it was registered: this is what happened, where `totals` is what stands."
+          },
+          "registryCovenantId": {
+            "type": "string"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/KeyspaceTotals"
+          }
+        }
+      },
+      "KeyspaceTotals": {
+        "type": "object",
+        "description": "Registry totals. The three deed counts are the sums of `keysByPrefix`, not a separate query,\nso a client can never render totals that disagree with the histogram beside them.",
+        "required": [
+          "active",
+          "pending",
+          "ownerUnknown",
+          "gaps"
+        ],
+        "properties": {
+          "active": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "gaps": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Live gaps, counted rather than derived. The partition invariant makes this deeds + 1, so\nserving it lets a client watch that hold rather than take it on faith."
+          },
+          "ownerUnknown": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "pending": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "Manifest": {
+        "allOf": [
+          {
+            "type": "object",
+            "description": "Anything newer tooling wrote that this build has no name for. Flattened, so it\ndocuments as `additionalProperties`: the handler relays the file's bytes, and a\ngenerated client keeps what it does not recognize rather than dropping it."
+          },
+          {
+            "type": "object",
+            "required": [
+              "network",
+              "registryCovenantId",
+              "gapAbi",
+              "deedAbi",
+              "gapTemplateHash",
+              "deedTemplateHash",
+              "params"
+            ],
+            "properties": {
+              "deedAbi": {
+                "type": "object",
+                "description": "The deed covenant's ABI artifact."
+              },
+              "deedTemplateHash": {
+                "type": "string",
+                "description": "The same for the deed template."
+              },
+              "gapAbi": {
+                "type": "object",
+                "description": "The gap covenant's ABI artifact: bytecode, state span, dispatch tags and argument types."
+              },
+              "gapTemplateHash": {
+                "type": "string",
+                "description": "The pin the gap artifact is judged against: a client that rebuilds the template and\ngets another hash refuses the manifest."
+              },
+              "genesisBinding": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "description": "The covenant id's full preimage: the outpoint the deployer spent to authorize the\ngenesis binding, which output of that transaction the genesis gap was, and that output\nspelled out with its script expanded to the redeem script and state. Lets a client\nrecompute the id and prove the genesis output group had exactly one member without any\nchain access."
+              },
+              "network": {
+                "type": "string",
+                "description": "The Kaspa network this registry was deployed on. An address means nothing without it."
+              },
+              "params": {
+                "type": "object",
+                "description": "The protocol parameters the templates were compiled with, baked into the bytecode, so a\nforged copy yields forged addresses that hold no UTXO."
+              },
+              "registryCovenantId": {
+                "type": "string",
+                "description": "The registry's covenant id: which registry this manifest describes."
+              },
+              "version": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "int32",
+                "description": "Manifest shape version. Absent in an early manifest, which reads as 0.",
+                "minimum": 0
+              }
+            }
+          }
+        ],
+        "description": "The deployment manifest `/genesis` serves from disk, verbatim.\n\nThis describes the served document and not the type that produced it. The handler serves the\nfile's bytes rather than a re-encoding, so a manifest written by newer tooling can carry\nfields this build has never heard of. The schema therefore leaves unknown fields open, and a\ngenerated client keeps them instead of dropping them on the floor, which is the same promise\nthe handler makes.\n\nThe nested artifacts stay open objects on purpose. `gapAbi` and `deedAbi` are silverscript's\nshape and move with that compiler rather than with this API. Freezing them here would be this\nservice claiming ownership of a document it only relays."
+      },
+      "NameResponse": {
+        "type": "object",
+        "required": [
+          "name",
+          "ownerType",
+          "owner",
+          "deedAddress",
+          "registryCovenantId"
+        ],
+        "properties": {
+          "address": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The owner as a Kaspa address. Present for every scheme reachable from one: a\ncovenant-id owner (0x04) is the only owner with no address form."
+          },
+          "card": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CardOut",
+                "description": "The name's live card, if it has one: output 1 of the transaction the deed's current UTXO\ncame from, and not seen swept."
+              }
+            ]
+          },
+          "deedAddress": {
+            "type": "string",
+            "description": "Re-verification anchor: a UTXO at this address carrying `registryCovenantId` is\nconsensus proof of this answer, with no history to replay."
+          },
+          "name": {
+            "type": "string",
+            "description": "The bare canonical on-chain name: what the chain stores, and what every key is hashed\nfrom. The `.k` suffix is presentation, and a client appends it when it shows one."
+          },
+          "owner": {
+            "type": "string",
+            "description": "The raw owner payload, hex. Always present, and for every scheme but 0x04 it is the\npayload of the owner's own Kaspa address."
+          },
+          "ownerType": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Owner scheme byte: 0x00 p2pk-schnorr, 0x03 p2sh, 0x04 covenant, 0x85/0x86 p2pk-ecdsa\n(odd/even y).",
+            "minimum": 0
+          },
+          "registryCovenantId": {
+            "type": "string"
+          }
+        }
+      },
+      "NeighbourGaps": {
+        "type": "object",
+        "description": "The two gaps flanking a live key, named by their merge seats: the predecessor leads at\nseat 0 (`merge`) and the successor delegates at seat 2 (`absorbed`). Named rather than\npositional because getting the two the wrong way round builds a transaction the covenant\nrejects for a reason nothing in the response would explain.",
+        "required": [
+          "predecessor",
+          "successor"
+        ],
+        "properties": {
+          "predecessor": {
+            "$ref": "#/components/schemas/GapOut"
+          },
+          "successor": {
+            "$ref": "#/components/schemas/GapOut"
+          }
+        }
+      },
+      "OwnerResponse": {
+        "type": "object",
+        "description": "Every live name one owner holds, with the owner given as what a deed actually stores: the\n`(ownerType, owner)` pair. `address` is that pair projected back to a Kaspa address, which\nevery scheme but a covenant id (0x04) has, so an address is a view of the owner rather than\na second kind of owner.",
+        "required": [
+          "ownerType",
+          "owner",
+          "names",
+          "cards",
+          "registryCovenantId"
+        ],
+        "properties": {
+          "address": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The owner as a Kaspa address. Absent for a covenant-id owner, the one scheme with no\naddress form."
+          },
+          "cards": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CardOut"
+            },
+            "description": "The live card of each of those names that has one, every entry carrying its `name`."
+          },
+          "names": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Every live name this owner holds: exact, not a lower bound."
+          },
+          "owner": {
+            "type": "string",
+            "description": "The raw owner payload, hex, exactly as the deed stores it."
+          },
+          "ownerType": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Owner scheme byte: 0x00 p2pk-schnorr, 0x03 p2sh, 0x04 covenant, 0x85/0x86 p2pk-ecdsa\n(odd/even y).",
+            "minimum": 0
+          },
+          "registryCovenantId": {
+            "type": "string"
+          }
+        }
+      },
+      "RecordValueOut": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "object",
+            "required": [
+              "opaque"
+            ],
+            "properties": {
+              "opaque": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "description": "A record value: text for the ENSIP-5 keys, a flag for a local key such as `primary`, and,\nfor a value this indexer does not recognise, an opaque value: the exact bytes of one CBOR\nitem as hex, which a client keeps and writes back unchanged."
+      },
+      "RepairSummary": {
+        "type": "object",
+        "required": [
+          "dropped",
+          "demoted",
+          "readopted",
+          "bridged",
+          "rewritten",
+          "gapsSynced",
+          "cardsSwept",
+          "cardsRestored",
+          "iterations"
+        ],
+        "properties": {
+          "bridged": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "cardsRestored": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "cardsSwept": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Card rows the probe found no UTXO for and marked swept, and marked rows whose UTXO\nwas found and were restored. Not a verdict input.",
+            "minimum": 0
+          },
+          "demoted": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Rows whose refuted ownership was cleared, keeping the row as owner-unknown.",
+            "minimum": 0
+          },
+          "dropped": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "gapsSynced": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Gap cache rows adopted, corrected or dropped. Not a verdict input: the gaps table is a\ncache of derived state, so it carries no fact the proof rests on.",
+            "minimum": 0
+          },
+          "iterations": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "readopted": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "rewritten": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Rows whose outpoint, value and acceptance DAA were rewritten from the observed UTXO.",
+            "minimum": 0
+          }
+        }
+      },
+      "SelfTestDetail": {
+        "type": "object",
+        "description": "Where a failed self-test failed, and what repair did about it: the operator's dump, served\nonly for `?detail=true`.\n\nEvery list here is capped at [`DETAIL_LIST_MAX`] with the count of what was left out beside\nit. A run that cannot reach its node fails every gap and every deed at once, and this body\nis `no-store`, so an uncapped list is a multi-megabyte answer to a question asked on a timer.",
+        "required": [
+          "published",
+          "pendingChecked",
+          "attempts",
+          "failingOutpoints",
+          "blindSpots",
+          "ownerUnknown",
+          "repaired"
+        ],
+        "properties": {
+          "attempts": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "blindSpots": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "description": "Residual blind spots after repair, as [lo, hi] hex key brackets: keyspace whose\nregistrations this indexer never observed."
+          },
+          "blindSpotsOmitted": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "failingOutpoints": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Outpoints that failed 3× in a row, as hex keys. Gaps and deeds are not repeated here:\nthey are `blindSpots` and `ownerUnknown` below, spelled with the bounds and the name\nthat make them actionable."
+          },
+          "failingOutpointsOmitted": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "ownerUnknown": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "description": "Residual rows whose key is still registered but whose deed address is refuted, as\n[hex key, name]. These are not blind spots: the keyspace is whole and the rows are real;\ntheir `(ownerType, owner)` is stale. Repair demotes them to owner-unknown, so a\nnon-empty list means the demotion could not be applied (the pipeline kept touching the\nrow). Reported apart from `blindSpots`, which derives from unconfirmed gap states only,\nso an ownership-only failure still comes with coordinates."
+          },
+          "ownerUnknownOmitted": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "pendingChecked": {
+            "type": "integer",
+            "format": "int64",
+            "description": "How many of `deedsChecked` were PENDING claims rather than activated names. A pending\ndeed is a live UTXO at a derivable address, so it is proven like any other and it is a\ngap bound like any other. The activated count is the difference. Unlike `/health`'s\ntop-level `active`/`pending`, these describe what this run proved, not what the table\nholds now.",
+            "minimum": 0
+          },
+          "published": {
+            "type": "boolean",
+            "description": "Whether this run refreshed the published `/snapshot` proof, true only when a pass that\nwas clean on its own evidence produced it."
+          },
+          "repaired": {
+            "$ref": "#/components/schemas/RepairSummary",
+            "description": "What repair did: rows dropped / demoted / re-adopted / bridged / rewritten, plus the\ngap cache rows reconciled from observation."
+          }
+        }
+      },
+      "SelfTestSummary": {
+        "type": "object",
+        "description": "What the last self-test settled, in the five numbers a reader acts on: whether it proved,\nwhen it ran, and how much it covered.\n\nThe verdict half of the report, served on every `/health`. The coordinates half is\n[`SelfTestDetail`], which is empty on a passing run and is asked for by name, because this\nbody is polled every couple of seconds by every open page and a failure dump has no business\nriding along with a liveness answer.",
+        "required": [
+          "proven",
+          "startedMs",
+          "finishedMs",
+          "gapsChecked",
+          "deedsChecked"
+        ],
+        "properties": {
+          "deedsChecked": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Deed addresses confirmed. Lower than the row count when owner-unknown rows are present:\nthose have no address to derive, and the gaps around them are their proof.",
+            "minimum": 0
+          },
+          "finishedMs": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "gapsChecked": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Derived gaps confirmed against the UTXO set: the completeness half of the proof.",
+            "minimum": 0
+          },
+          "proven": {
+            "type": "boolean"
+          },
+          "startedMs": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Wall-clock unix ms of the run's start and end. Their difference is how long it took.",
+            "minimum": 0
+          }
+        }
+      },
+      "Snapshot": {
+        "type": "object",
+        "required": [
+          "registryCovenantId",
+          "vcpCheckpoint",
+          "deeds",
+          "events"
+        ],
+        "properties": {
+          "cards": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExportCard"
+            },
+            "description": "The unswept card rows. Not registry state and not part of\nthe canonical core: a card is an observation about a transfer's payload, and the\nself-test proves nothing about it. Swept rows stay behind, since their marks are a\nlocal retention detail."
+          },
+          "deeds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExportDeed"
+            }
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExportEvent"
+            }
+          },
+          "historySeq": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "The registry's change marker as of this snapshot: the same `max(history.id)` that\n`/health` publishes, read inside the same transaction as the rows below it.\n\nIt is here so a polling client can tell which registry state it just received, rather\nthan assuming it received the one the `/health` report that triggered the fetch\ndescribed. Those two can differ by the export memo's age or by any cache in between,\nand a client that latches the report's marker onto an older body stops re-fetching\nwhile holding a snapshot it believes is current.\n\nAn observation about the snapshot, like `proven`: history ids are local to one\nindexer, so this is not part of the canonical core two mirrors byte-compare, and\n`import` ignores it.\n\nSerialized even when null, unlike the other optional fields here: `/health` publishes\nthe same marker and always emits it, and a client comparing the two is comparing\nstrings. An absent field reads as `undefined` in a browser where the report reads\n`null`, and those never match, which is a snapshot re-downloaded on every refresh\nfloor, forever, on exactly the two paths where `history` is legitimately empty while\n`deeds` is enormous: a mirror booted from `snapshot.json`, and a cold start against an\naged registry."
+          },
+          "proven": {
+            "type": "boolean",
+            "description": "Proven against the UTXO set by the self-test that produced this snapshot. It is `false`\non a snapshot built outside the proof path.\nThe canonical byte-comparison between mirrors remains defined over `registryCovenantId`\nand `deeds` only; this field and `provenAt` are observations *about* the\nsnapshot, not part of it. `import` ignores both."
+          },
+          "provenAt": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Wall-clock unix ms at which that validation completed (= the producing self-test's\n`finishedMs`).",
+            "minimum": 0
+          },
+          "registryCovenantId": {
+            "type": "string"
+          },
+          "vcpCheckpoint": {
+            "type": "string"
+          }
+        }
+      },
+      "SpenderCardsResponse": {
+        "type": "object",
+        "description": "Every unswept card one spender minted, live or retired: what a wallet asks to find the cards\nit left behind and can reclaim.",
+        "required": [
+          "spenderType",
+          "spender",
+          "address",
+          "cards",
+          "registryCovenantId"
+        ],
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "cards": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CardOut"
+            }
+          },
+          "registryCovenantId": {
+            "type": "string"
+          },
+          "spender": {
+            "type": "string"
+          },
+          "spenderType": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "registry",
+      "description": "Name, address and keyspace queries"
+    },
+    {
+      "name": "snapshot",
+      "description": "Registry snapshot for mirrors and bootstrap"
+    },
+    {
+      "name": "deployment",
+      "description": "The deployment manifest every client boots from"
+    },
+    {
+      "name": "health",
+      "description": "Liveness and self-test status"
+    }
+  ]
+}

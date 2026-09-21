@@ -16,6 +16,10 @@ It runs on Node 22.12 or later, and in evergreen browsers. Its typings name `fet
 `AbortSignal`, so a TypeScript consumer compiles with the `DOM` library or `@types/node` in its
 compiler configuration.
 
+[examples/browser.html](examples/browser.html) runs the calls below against a live registry. Save
+the file, open it in a browser, and press a button. It loads the published package from esm.sh, so
+it needs no build and no wallet.
+
 ## A recipient field
 
 ```ts

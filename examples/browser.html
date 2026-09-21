@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@dotk/sdk in the browser</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --line: color-mix(in srgb, currentColor 20%, transparent);
+        --soft: color-mix(in srgb, currentColor 6%, transparent);
+      }
+      body {
+        max-width: 60rem;
+        margin: 0 auto;
+        padding: 1.5rem 1rem 4rem;
+        font:
+          16px/1.55 system-ui,
+          sans-serif;
+      }
+      h1 {
+        margin-bottom: 0.25rem;
+      }
+      h2 {
+        margin: 0 0 0.25rem;
+        font-size: 1.1rem;
+      }
+      p {
+        margin: 0.5rem 0;
+      }
+      code,
+      pre {
+        font-family: ui-monospace, monospace;
+        font-size: 0.85rem;
+      }
+      form {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+        gap: 0.75rem;
+        margin: 1rem 0;
+        padding: 0.75rem;
+        border: 1px solid var(--line);
+        border-radius: 0.5rem;
+        background: Canvas;
+      }
+      label {
+        display: grid;
+        gap: 0.25rem;
+        font-size: 0.85rem;
+      }
+      input,
+      select,
+      button {
+        font: inherit;
+        margin-top: 10px;
+        padding: 0.4rem 0.5rem;
+        border: 1px solid var(--line);
+        border-radius: 0.35rem;
+        background: Canvas;
+        color: inherit;
+      }
+      button {
+        cursor: pointer;
+        background: var(--soft);
+      }
+      button:hover {
+        border-color: currentColor;
+      }
+      section {
+        margin: 1rem 0;
+        padding: 0.9rem 1rem;
+        border: 1px solid var(--line);
+        border-radius: 0.5rem;
+      }
+      pre {
+        overflow-x: auto;
+        margin: 0.6rem 0 0;
+        padding: 0.6rem 0.7rem;
+        border-radius: 0.35rem;
+        background: var(--soft);
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+      .out {
+        max-height: 24rem;
+        overflow: auto;
+      }
+      .out:empty {
+        display: none;
+      }
+      .bad {
+        color: color-mix(in srgb, currentColor 40%, #c0392b);
+      }
+      table {
+        margin-top: 0.6rem;
+        border-collapse: collapse;
+        font-size: 0.9rem;
+      }
+      th,
+      td {
+        padding: 0.25rem 0.75rem 0.25rem 0;
+        text-align: left;
+        vertical-align: top;
+        border-bottom: 1px solid var(--line);
+      }
+      footer {
+        margin-top: 2rem;
+        font-size: 0.85rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>@dotk/sdk in the browser</h1>
+    <p>
+      This page resolves <code>.k</code> names on Kaspa, live, from a browser. Save it, open it, and press a button.
+      Every snippet below is the code that the button runs.
+    </p>
+    <p>
+      The page loads the published package from esm.sh, so it needs an internet connection. It reads and never spends.
+      Nothing here needs a wallet or a key.
+    </p>
+
+    <form id="controls" onsubmit="return false">
+      <label>
+        Registry
+        <select id="network"></select>
+      </label>
+      <label>
+        Name
+        <input id="name" spellcheck="false" />
+      </label>
+      <label>
+        Address
+        <input id="address" spellcheck="false" />
+      </label>
+      <label>
+        User input
+        <input id="input" spellcheck="false" />
+      </label>
+      <label>
+        API
+        <input id="api" readonly />
+      </label>
+      <label>
+        Every example
+        <button id="all" type="button">Run all</button>
+      </label>
+    </form>
+
+    <p id="boot">Loading the package from esm.sh.</p>
+
+    <main id="demos" hidden></main>
+
+    <footer>
+      <p>
+        Every snippet runs with <code>dotk</code>, a client of the registry you picked, and with <code>name</code>,
+        <code>address</code> and <code>input</code> from the fields above. The package's own exports are in scope under
+        <code>sdk</code>, and <code>subnames</code> is one of them.
+      </p>
+      <p>
+        To run a snippet against a build of this repository, serve the repository over HTTP and point the import map at
+        <code>../dist/index.js</code>. A browser refuses a relative module import from a <code>file:</code> page.
+      </p>
+      <p>
+        The package is <a href="https://www.npmjs.com/package/@dotk/sdk">@dotk/sdk</a> on npm.
+        <a href="https://dotk.name">dotk.name</a> is the web app.
+      </p>
+    </footer>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "@dotk/sdk": "https://esm.sh/@dotk/sdk@2.0.0"
+        }
+      }
+    </script>
+
+    <script type="module">
+      import * as sdk from '@dotk/sdk'
+
+      const { Dotk, subnames, DEPLOYMENT_NETWORKS, DIRECTORIES } = sdk
+
+      // What each registry's fields start at: a registered name, the address that owns it, and
+      // something a person can type.
+      const EXAMPLES = {
+        mainnet: {
+          name: 'supertypo.k',
+          address: 'kaspa:qzaarz9u2qfe6a6tt04j39pej8tk9mhrntjhfaymvwelucq9wclvyneumu0u3',
+          input: 'kns.supertypo.k',
+        },
+        'testnet-10': {
+          name: 'sdktest.k',
+          address: 'kaspatest:qq28y8ha7hujd0d42h98ehtwyzqvgn9q3muvtkp9wu46swkcg4rkc5vlwy479',
+          input: 'sdktest.k',
+        },
+      }
+
+      const DEMOS = [
+        {
+          id: 'status',
+          title: 'Ask the API what it serves',
+          blurb:
+            'Read sameRegistry before you trust an API that you did not pick. caughtUp says whether it is level with the chain. An API that fell behind answers "no such name" for a name it has not reached yet.',
+          code: `return await dotk.status()`,
+        },
+        {
+          id: 'recipient',
+          title: 'Pay what a person typed',
+          blurb:
+            'recipientFor takes a name, a subname or an address, and answers the address to pay or why there is none. It never throws on its input. One call does what a send field needs.',
+          code: `const r = await dotk.recipientFor(input)
+
+switch (r.kind) {
+  case 'address':
+    return { pay: r.address, caption: 'an address pays itself' }
+  case 'name':
+    return { pay: r.address, proven: r.proven, fault: r.fault ?? null }
+  case 'subname':
+    return { pay: r.address, caption: 'set by the owner of ' + r.parent.display, fault: r.fault ?? null }
+  case 'neither':
+    return { pay: null, reason: r.reason }
+}`,
+        },
+        {
+          id: 'classify',
+          title: 'Sort the input without the network',
+          blurb:
+            'classify asks nothing of the API and throws nothing. It folds case, trims spaces and makes the .k suffix optional. Type an address, a name, a subname or nonsense in the field above.',
+          code: `return dotk.classify(input)`,
+        },
+        {
+          id: 'resolve',
+          title: 'Resolve one name',
+          blurb:
+            'resolveName answers a name in full: the address to pay, the deed that proves the ownership, the card and the records. proven is null because this client has no node.',
+          code: `const found = await dotk.resolveName(name)
+if (!found) return null
+
+return {
+  display: found.display,
+  address: found.address,
+  deedAddress: found.deedAddress,
+  proven: found.proven,
+  cardValueSompi: found.card ? found.card.value : null,
+  records: found.records,
+}`,
+        },
+        {
+          id: 'records',
+          title: 'Read the records',
+          blurb:
+            'A name can carry records, such as a URL, an email address and a GitHub handle. A record is whatever the owner put there, so this page links a value only where it is http or https.',
+          code: `const found = await dotk.resolveName(name)
+return found ? found.records : {}`,
+          render: renderRecords,
+        },
+        {
+          id: 'subnames',
+          title: 'List the subnames',
+          blurb:
+            'The owner of a name can point a label at an address. bob.alice.k is the label bob on the card of alice.k. The chain proves the parent, never the entry, so show a payee as that owner’s claim.',
+          code: `const found = await dotk.resolveName(name)
+if (!found) return { rows: [], one: null }
+
+const rows = subnames(found.ownerType, found.records, dotk.prefix)
+const first = rows[0]
+const one = first ? await dotk.resolveSubname(first.label + '.' + found.display) : null
+
+return {
+  rows,
+  one: one && {
+    display: one.display,
+    payee: one.payee,
+    fault: one.fault ?? null,
+    parentProven: one.parent.proven,
+  },
+}`,
+        },
+        {
+          id: 'reverse',
+          title: 'Name an address',
+          blurb:
+            'An address can own several names. displayNameFor picks the one to show: the name a card claims as primary, and otherwise the shortest name, with ties broken alphabetically.',
+          code: `const show = await dotk.displayNameFor(address)
+const owned = await dotk.namesOf(address)
+
+return {
+  displayName: show,
+  names: owned.map((n) => ({ display: n.display, primary: n.primary, proven: n.proven })),
+}`,
+        },
+        {
+          id: 'price',
+          title: 'Price a registration',
+          blurb:
+            'quote reads the deployment that this package carries, so it asks nothing of the API. available asks whether the name is free right now. A sompi is 1e-8 KAS.',
+          code: `const q = dotk.quote(name)
+const free = await dotk.available(name)
+
+return {
+  name: q.name,
+  free,
+  feeKas: q.fee / 1e8,
+  bondKas: q.bond / 1e8,
+  depositKas: q.deposit / 1e8,
+  lockedValueKas: q.lockedValue / 1e8,
+  totalToFundKas: q.totalToFund / 1e8,
+}`,
+        },
+        {
+          id: 'lookup',
+          title: 'Tell a free name from one still registering',
+          blurb:
+            'lookup gives one of four answers: active, pending, ownerUnknown or free. A send field that cannot tell pending from free invites a payment into a registration that did not complete.',
+          code: `const answer = await dotk.lookup(name)
+
+return {
+  kind: answer.kind,
+  key: answer.key,
+  address: answer.kind === 'active' ? answer.resolved.address : null,
+}`,
+        },
+        {
+          id: 'history',
+          title: 'Page the history of a name',
+          blurb:
+            'history is the one answer that a node cannot give, so it comes from the API for every client. complete says whether the oldest entry held is the registration itself.',
+          code: `const page = await dotk.history(name, { limit: 5 })
+
+return { total: page.total, complete: page.complete, entries: page.entries }`,
+        },
+        {
+          id: 'derive',
+          title: 'Derive the addresses yourself',
+          blurb:
+            'These calls compute from the bundled deployment alone. A deed address is where the ownership of a name sits, and you can check it against a node without asking anybody.',
+          code: `return {
+  network: dotk.network,
+  registryCovenantId: dotk.registryCovenantId,
+  bare: dotk.normalize(name),
+  display: dotk.display(name),
+  key: dotk.keyOf(name),
+  owner: dotk.ownerOf(address),
+  deedAddress: dotk.deedAddress(name, address),
+  pendingDeedAddress: dotk.pendingDeedAddress(name, address),
+}`,
+        },
+        {
+          id: 'errors',
+          title: 'Catch a refusal',
+          blurb:
+            'Everything this package throws extends DotkError. An ApiError carries the API’s own code, such as not_found or not_ready. Branch on the code, and never on the prose.',
+          code: `try {
+  await dotk.resolveName('not a name!')
+  return 'no refusal'
+} catch (e) {
+  return {
+    name: e.name,
+    message: e.message,
+    code: e.code ?? null,
+    isDotkError: e instanceof sdk.DotkError,
+  }
+}`,
+        },
+      ]
+
+      const form = {
+        network: document.getElementById('network'),
+        name: document.getElementById('name'),
+        address: document.getElementById('address'),
+        input: document.getElementById('input'),
+        api: document.getElementById('api'),
+      }
+
+      let dotk = null
+
+      for (const network of DEPLOYMENT_NETWORKS) {
+        const option = document.createElement('option')
+        option.value = network
+        option.textContent = network
+        form.network.append(option)
+      }
+
+      form.network.addEventListener('change', () => {
+        build()
+        fill()
+      })
+      document.getElementById('all').addEventListener('click', runAll)
+
+      build()
+      fill()
+      draw()
+      document.getElementById('boot').remove()
+      document.getElementById('demos').hidden = false
+
+      function build() {
+        const network = form.network.value
+        dotk = new Dotk({ network })
+        form.api.value = DIRECTORIES[network] ?? 'none'
+      }
+
+      function fill() {
+        const example = EXAMPLES[form.network.value]
+        if (!example) return
+        form.name.value = example.name
+        form.address.value = example.address
+        form.input.value = example.input
+      }
+
+      function draw() {
+        const main = document.getElementById('demos')
+        for (const demo of DEMOS) {
+          const section = document.createElement('section')
+
+          const heading = document.createElement('h2')
+          heading.textContent = demo.title
+          const blurb = document.createElement('p')
+          blurb.textContent = demo.blurb
+          const code = document.createElement('pre')
+          code.textContent = demo.code
+          const button = document.createElement('button')
+          button.type = 'button'
+          button.textContent = 'Run it'
+          const out = document.createElement('pre')
+          out.className = 'out'
+          out.id = 'out-' + demo.id
+
+          button.addEventListener('click', () => void run(demo))
+          section.append(heading, blurb, code, button, out)
+          main.append(section)
+        }
+      }
+
+      // The snippet above each button is the snippet that runs, because this compiles that same
+      // text. The names in the list below are what a snippet can use.
+      const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor
+
+      async function run(demo) {
+        const out = document.getElementById('out-' + demo.id)
+        // A demo that draws a table of its own leaves it after the output, so clear the last one.
+        out.nextElementSibling?.remove()
+        out.className = 'out'
+        out.textContent = 'Running.'
+        const started = performance.now()
+        try {
+          const body = new AsyncFunction('sdk', 'dotk', 'name', 'address', 'input', 'subnames', demo.code)
+          const answer = await body(sdk, dotk, form.name.value, form.address.value, form.input.value, subnames)
+          const took = Math.round(performance.now() - started)
+          out.textContent = show(answer) + '\n\n// ' + took + ' ms'
+          if (demo.render) demo.render(answer, out)
+        } catch (e) {
+          out.className = 'out bad'
+          out.textContent = (e instanceof Error ? e.name + ': ' + e.message : String(e)) + '\n\n// it threw'
+        }
+      }
+
+      async function runAll() {
+        for (const demo of DEMOS) await run(demo)
+      }
+
+      function show(answer) {
+        if (answer === undefined) return 'undefined'
+        return JSON.stringify(answer, (_key, value) => (typeof value === 'bigint' ? String(value) : value), 2)
+      }
+
+      // A record value is whatever the name's owner wrote. `javascript:` and `data:text/html` are
+      // as valid in one as `https:`, so this allows two schemes and prints the rest as text.
+      function renderRecords(records, out) {
+        const rows = Object.entries(records ?? {})
+        if (rows.length === 0) return
+
+        const table = document.createElement('table')
+        const head = table.insertRow()
+        for (const title of ['Key', 'Value']) {
+          const heading = document.createElement('th')
+          heading.textContent = title
+          head.append(heading)
+        }
+        for (const [key, value] of rows) {
+          const row = table.insertRow()
+          row.insertCell().textContent = key
+          row.insertCell().append(valueOf(value))
+        }
+        out.after(table)
+
+        function valueOf(value) {
+          if (typeof value !== 'string') return document.createTextNode(JSON.stringify(value))
+          const url = parse(value)
+          if (!url) return document.createTextNode(value)
+          const link = document.createElement('a')
+          link.href = url.href
+          link.rel = 'noopener noreferrer nofollow'
+          link.textContent = value
+          return link
+        }
+
+        function parse(value) {
+          try {
+            const url = new URL(value)
+            return url.protocol === 'https:' || url.protocol === 'http:' ? url : null
+          } catch {
+            return null
+          }
+        }
+      }
+    </script>
+  </body>
+</html>

@@ -37,6 +37,8 @@ export interface NodeContext {
 /** A row the node can judge: a name, where its deed sits, and the card the API listed for it. */
 export interface Provable {
   name: string
+  /** The deed's owner scheme, for rule 5. A listing by address leaves it out, because no covenant id has an address. */
+  ownerType?: number
   deedAddress: string
   card: Card | null
   proven: boolean | null
@@ -154,7 +156,7 @@ function judgeCards<N extends Provable>(
     }
     try {
       verifyCard(
-        { key: state.key, outpointTxid: deed.transactionId },
+        { key: state.key, outpointTxid: deed.transactionId, ownerType: row.ownerType },
         state,
         utxo && { transactionId: utxo.transactionId!, index: utxo.index! },
         fromHex(card.blob)

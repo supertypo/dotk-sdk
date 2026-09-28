@@ -1586,6 +1586,22 @@ describe('cards', () => {
     expect('refusal' in proven).toBe(false)
   })
 
+  it('refuses a card beside a name in escrow', async () => {
+    const escrowed = fakeFetch(() => ({
+      status: 200,
+      body: { ...nameBody('kaspa', 4, covenantOwner.owner), card: cardOut(vector) },
+    })).fetchFn
+    const node = fakeNode([
+      { address: deedOf('kaspa', 4).address, covenantId: COVENANT_ID, transactionId: TXID, index: 0, daaScore: 5 },
+      { address: vector.address, transactionId: TXID, index: 1 },
+    ])
+    const found = (await new Dotk({ api: 'http://x', fetch: escrowed, node }).resolveName('kaspa'))!
+    expect(found.proven).toBe(true)
+    expect(found.card!.proven).toBe(false)
+    expect(found.card!.refusal).toMatch(/^rule 5:/)
+    expect(found.records).toEqual({})
+  })
+
   it('refutes the card of a name the node does not hold', async () => {
     const node = fakeNode([{ address: vector.address, transactionId: TXID, index: 1 }])
     const dotk = new Dotk({ api: 'http://x', fetch: withCard(cardOut(vector)), node })

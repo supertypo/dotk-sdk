@@ -2,6 +2,13 @@
 
 The record starts at 1.2.0.
 
+## Unreleased
+
+- Rule 5 refuses a card beside a name in escrow. A card listed for a deed that a covenant id
+  owns now answers `proven: false` with the refusal `rule 5: a name in escrow carries no
+records`, and its records read as empty. `DeedFinding` gains the optional `ownerType`, which
+  `verifyCard` reads for that clause.
+
 ## 2.0.0
 
 - `resolve` is renamed `resolveName`, so the two resolving calls read as a pair, `resolveName`

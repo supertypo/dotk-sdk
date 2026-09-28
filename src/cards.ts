@@ -523,6 +523,8 @@ export interface DeedFinding {
   key: Uint8Array
   /** The transaction that created the deed's current UTXO, hex. */
   outpointTxid: string
+  /** The deed's owner scheme. A name in escrow, under {@link OwnerType.CovenantId}, carries no records. */
+  ownerType?: number | undefined
 }
 
 /**
@@ -533,8 +535,8 @@ export interface DeedFinding {
  * 2. That UTXO is output 1 of the transaction that created the deed's current UTXO.
  * 3. The blob hashes to the `records` field the card's script commits to.
  * 4. The blob is at most {@link CARD_BLOB_MAX} bytes.
- * 5. The card's deed resolves and its key is that deed's, so a card for a released or evicted
- *    name is inert.
+ * 5. The card's deed resolves, its key is that deed's, and no covenant id owns the deed, so a
+ *    card for a released, evicted or escrowed name is inert.
  *
  * This function throws a {@link CardError} naming the rule that failed. The caller settles the
  * deed half of rule 5 and derives the rule 1 address with {@link cardAddress}, and this function
@@ -551,6 +553,7 @@ export function verifyCard(
   blob: Uint8Array
 ): void {
   if (!equal(card.key, deed.key)) throw new CardError('rule 5: the card is for another name')
+  if (deed.ownerType === OwnerType.CovenantId) throw new CardError('rule 5: a name in escrow carries no records')
   if (!cardUtxo) throw new CardError("rule 1: no live UTXO at the card's address")
   if (cardUtxo.transactionId.toLowerCase() !== deed.outpointTxid.toLowerCase() || cardUtxo.index !== 1) {
     throw new CardError("rule 2: the card is not output 1 of the transaction that created the deed's current UTXO")

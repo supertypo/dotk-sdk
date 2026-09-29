@@ -2,7 +2,7 @@
 
 The record starts at 1.2.0.
 
-## Unreleased
+## 2.1.0
 
 - Rule 5 refuses a card beside a name in escrow. A card listed for a deed that a covenant id
   owns now answers `proven: false` with the refusal `rule 5: a name in escrow carries no

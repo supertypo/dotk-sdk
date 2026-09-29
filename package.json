@@ -1,6 +1,6 @@
 {
   "name": "@dotk/sdk",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Read-only client for the dotk name registry on Kaspa: resolve, reverse-look-up, price and verify .k names",
   "license": "MIT",
   "author": "s@dotk.name",

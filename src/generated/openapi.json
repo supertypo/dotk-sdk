@@ -67,6 +67,16 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "No self-test verdict yet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -192,6 +202,16 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "No self-test verdict yet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -266,6 +286,16 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "No self-test verdict yet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -290,6 +320,16 @@
           },
           "500": {
             "description": "Reading the database failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No self-test verdict yet",
             "content": {
               "application/json": {
                 "schema": {
@@ -359,6 +399,16 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "No self-test verdict yet, or the last one did not prove this name",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -404,6 +454,16 @@
           },
           "500": {
             "description": "Reading the database failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No self-test verdict yet",
             "content": {
               "application/json": {
                 "schema": {
@@ -474,6 +534,16 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "No self-test verdict yet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -537,7 +607,7 @@
             }
           },
           "503": {
-            "description": "Nothing processed yet, or for the proven body, no proof yet or an expired one",
+            "description": "No self-test verdict yet, or for the proven body, no proof yet or an expired one",
             "content": {
               "application/json": {
                 "schema": {
@@ -576,11 +646,31 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "description": "The previous page's `next`. Absent for the first page.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Cards per page, 1–100. Default 100.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Success. Every unswept card the spender minted, live or retired. A spender with none answers an empty list, never 404",
+            "description": "Success. A page of the unswept cards naming the spender, live or retired, with `next` while more follow. A spender with none answers an empty list, never 404",
             "content": {
               "application/json": {
                 "schema": {
@@ -590,7 +680,7 @@
             }
           },
           "400": {
-            "description": "Not a key-owned scheme, or not a 32-byte hex payload",
+            "description": "Not a key-owned scheme, not a 32-byte hex payload, or an `after` or `limit` this operation refuses",
             "content": {
               "application/json": {
                 "schema": {
@@ -601,6 +691,16 @@
           },
           "500": {
             "description": "Reading the database failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No self-test verdict yet",
             "content": {
               "application/json": {
                 "schema": {
@@ -789,7 +889,7 @@
               "string",
               "null"
             ],
-            "description": "The deed UTXO as last observed, and the DAA score of the block that accepted the deed's\nsplit. `acceptedDaa` carries through activate and transfer, so it is the registration\ntime, and a PENDING deed is evictable at `acceptedDaa + tEvict`. Absent when this indexer\nnever observed the split."
+            "description": "The deed UTXO as last observed, and the DAA score of the block that accepted the deed's\nsplit. `acceptedDaa` carries through activate and transfer, so it is the registration\ntime, and a PENDING deed is evictable at `acceptedDaa + tEvict`. Absent when this indexer\nnever observed the split, or whose claim the chain refuted."
           },
           "owner": {
             "type": [
@@ -1727,7 +1827,7 @@
             "items": {
               "type": "string"
             },
-            "description": "Every live name this owner holds: exact, not a lower bound."
+            "description": "Every live name this owner holds that the last self-test proved."
           },
           "owner": {
             "type": "string",
@@ -1833,7 +1933,7 @@
       },
       "SelfTestDetail": {
         "type": "object",
-        "description": "Where a failed self-test failed, and what repair did, served only for `?detail=true`. Each\nlist holds at most 100 entries, and the `…Omitted` field beside it counts the rest.",
+        "description": "What the last self-test could not prove, and what repair did, served only for\n`?detail=true`. Each list holds at most 100 entries, and the `…Omitted` field beside it\ncounts the rest.",
         "required": [
           "published",
           "pendingChecked",
@@ -1869,7 +1969,7 @@
             "items": {
               "type": "string"
             },
-            "description": "Outpoints that failed 3 times in a row, as hex keys. Failing gaps and deeds appear in\n`blindSpots` and `ownerUnknown` instead."
+            "description": "Outpoints that failed 3 times in a row, as `outpoint:<hex key>`. Failing gaps and deeds\nappear in `blindSpots` and `ownerUnknown` instead."
           },
           "failingOutpointsOmitted": {
             "type": "integer",
@@ -2005,7 +2105,7 @@
       },
       "SpenderCardsResponse": {
         "type": "object",
-        "description": "Every unswept card one spender minted, live or retired, so a wallet can find cards to reclaim.",
+        "description": "The unswept cards naming one spender, live or retired, so a wallet can find cards to reclaim.",
         "required": [
           "spenderType",
           "spender",
@@ -2021,7 +2121,15 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/CardOut"
-            }
+            },
+            "description": "One page, in outpoint order."
+          },
+          "next": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The `after` of the next page, `{txid}:{index}`. Absent on the last page."
           },
           "registryCovenantId": {
             "type": "string"

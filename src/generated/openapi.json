@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "dotk.name API",
-    "description": "Live `name → owner` registry with self-proving answers: every registry answer carries what a caller needs to re-verify it against any Kaspa node in one query (deed address + registry covenant id).",
+    "description": "The `.k` name registry on Kaspa. A name or key answer carries its deed address and the registry covenant id, so a caller can check it with one UTXO query to a Kaspa node.",
     "contact": {
       "name": "dotk.name",
       "email": "s@dotk.name"
@@ -967,7 +967,7 @@
           "acceptedDaa": {
             "type": "integer",
             "format": "int64",
-            "description": "DAA score of the block that accepted the deed's split. It carries through activate and\ntransfer, so it is the registration time, and a PENDING deed is evictable at\n`acceptedDaa + tEvict`. Always present on a PENDING deed. Absent on an ACTIVE deed whose\nregistration this indexer did not observe.",
+            "description": "DAA score of the block that accepted the deed's split. It carries through activate and\ntransfer, so it is the registration time, and a PENDING deed is evictable at\n`acceptedDaa + params.t_evict` from `/genesis`. Always present on a PENDING deed. Absent on an ACTIVE deed whose\nregistration this indexer did not observe.",
             "minimum": 0
           },
           "claim": {
@@ -1258,7 +1258,7 @@
       },
       "GapsByWidth": {
         "type": "object",
-        "description": "Gap widths as multiples of the average gap, so the shape stays comparable as the registry\ngrows. With uniform keys it decays exponentially, so a deviation is worth a look.",
+        "description": "Gap widths as multiples of the average gap, so the shape stays comparable as the registry\ngrows. With uniform keys it decays exponentially.",
         "required": [
           "counts",
           "bucketsPerAverage",
@@ -1321,7 +1321,7 @@
               "null"
             ],
             "format": "int64",
-            "description": "The registry's change marker: `max(history.id)`, or `null` before any event. Poll it to\ndecide whether to re-read `/snapshot`. Compare for difference, not order, because a reorg\ncan lower it."
+            "description": "The registry's change marker, or `null` before any event. Poll it to\ndecide whether to re-read `/snapshot`. Compare for difference, not order, because a reorg\ncan lower it."
           },
           "journalCoverage": {
             "type": [
@@ -1392,7 +1392,7 @@
           "tipDistance": {
             "type": "integer",
             "format": "int64",
-            "description": "Confirmation depth: the blocks below the tip that the indexer does not read yet.",
+            "description": "Confirmation depth in blue score. The indexer does not read the chain blocks within this\ndistance below the tip.",
             "minimum": 0
           }
         }
@@ -1572,7 +1572,7 @@
           },
           "proven": {
             "type": "boolean",
-            "description": "Whether the last self-test passed and left no blind spot around this key. This is\ncoverage, not freshness: it is as old as that self-test, which finished at `provenAt`. A\nclient's own probe of the deed address remains the real check."
+            "description": "Whether the last self-test passed and left no blind spot around this key. This is\ncoverage, not freshness: it is as old as that self-test, which finished at `provenAt`. A\nclient can probe the deed address itself."
           },
           "provenAt": {
             "type": "integer",
@@ -1693,7 +1693,7 @@
         "allOf": [
           {
             "type": "object",
-            "description": "Fields this build does not know, documented as `additionalProperties`."
+            "description": "Fields this build does not know."
           },
           {
             "type": "object",
@@ -1742,7 +1742,7 @@
               "version": {
                 "type": "integer",
                 "format": "int32",
-                "description": "Manifest shape version. Absent means 0.",
+                "description": "Manifest shape version. A client refuses a version it does not read.",
                 "minimum": 0
               }
             }
@@ -1901,12 +1901,13 @@
           "cardsRestored": {
             "type": "integer",
             "format": "int64",
+            "description": "Card rows the probe marked unswept again.",
             "minimum": 0
           },
           "cardsSwept": {
             "type": "integer",
             "format": "int64",
-            "description": "Card rows marked swept or restored by the probe. Not a verdict input.",
+            "description": "Card rows the probe marked swept. Not a verdict input.",
             "minimum": 0
           },
           "demoted": {
@@ -2046,7 +2047,7 @@
           "deedsChecked": {
             "type": "integer",
             "format": "int64",
-            "description": "Deed addresses confirmed. Lower than the row count when owner-unknown rows exist, since\nthose have no address to derive.",
+            "description": "Deed addresses confirmed. Lower than the row count when owner-unknown rows exist, because\nthose have no address to derive.",
             "minimum": 0
           },
           "finishedMs": {
@@ -2074,6 +2075,7 @@
       },
       "Snapshot": {
         "type": "object",
+        "description": "The registry for mirrors and bootstrap. The canonical core is `registryCovenantId` and the\nkey-sorted `deeds`. The resume section is `vcpCheckpoint` and `events`, the journal tail.",
         "required": [
           "proven",
           "registryCovenantId",
@@ -2108,7 +2110,7 @@
               "null"
             ],
             "format": "int64",
-            "description": "The `max(history.id)` that `/health` publishes, read in the same transaction as the rows.\nIt tells a polling client which registry state it received. History ids are local to one\nindexer, so this is outside the canonical core, and an importer ignores it."
+            "description": "The `historySeq` that `/health` publishes, read in the same transaction as the rows.\nIt tells a polling client which registry state it received. History ids are local to one\nindexer, so this is outside the canonical core, and an importer ignores it."
           },
           "proven": {
             "type": "boolean",

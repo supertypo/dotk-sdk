@@ -1,7 +1,7 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "dotk.name api",
+    "title": "dotk.name API",
     "description": "Live `name → owner` registry with self-proving answers: every registry answer carries what a caller needs to re-verify it against any Kaspa node in one query (deed address + registry covenant id).",
     "contact": {
       "name": "dotk.name",
@@ -11,7 +11,7 @@
       "name": "AGPL-3.0-only",
       "url": "https://www.gnu.org/licenses/agpl-3.0.html"
     },
-    "version": "0.1.0"
+    "version": "0.10.0"
   },
   "servers": [
     {
@@ -24,7 +24,7 @@
         "tags": [
           "registry"
         ],
-        "description": "Get an address's names",
+        "summary": "Get an address's names",
         "operationId": "get_address",
         "parameters": [
           {
@@ -86,15 +86,54 @@
         "tags": [
           "deployment"
         ],
-        "description": "Get the deployment manifest",
+        "summary": "Get the deployment manifest",
         "operationId": "get_genesis",
+        "parameters": [
+          {
+            "name": "If-None-Match",
+            "in": "header",
+            "description": "Entity tags from earlier answers. A match answers 304.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "The deployment manifest verbatim: template bytecode, abi and params",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Strong entity tag of the body. Every later answer with the same tag has the same bytes."
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Manifest"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "`If-None-Match` names the current body",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A query string, which this operation does not take",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -107,7 +146,7 @@
         "tags": [
           "health"
         ],
-        "description": "Get health details",
+        "summary": "Get health details",
         "operationId": "get_health",
         "parameters": [
           {
@@ -159,7 +198,7 @@
         "tags": [
           "registry"
         ],
-        "description": "Get a key's neighborhood",
+        "summary": "Get a key's neighborhood",
         "operationId": "get_key",
         "parameters": [
           {
@@ -168,7 +207,8 @@
             "description": "Name key: 64 hex characters, `blake3(name)`",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
             }
           }
         ],
@@ -221,7 +261,7 @@
         "tags": [
           "registry"
         ],
-        "description": "Get a key's history",
+        "summary": "Get a key's history",
         "operationId": "get_key_history",
         "parameters": [
           {
@@ -230,7 +270,8 @@
             "description": "Name key: 64 hex characters, `blake3(name)`",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
             }
           },
           {
@@ -241,7 +282,8 @@
             "schema": {
               "type": "integer",
               "format": "int32",
-              "minimum": 0
+              "maximum": 100,
+              "minimum": 1
             }
           },
           {
@@ -305,15 +347,54 @@
         "tags": [
           "registry"
         ],
-        "description": "Get the keyspace summary",
+        "summary": "Get the keyspace summary",
         "operationId": "get_keyspace",
+        "parameters": [
+          {
+            "name": "If-None-Match",
+            "in": "header",
+            "description": "Entity tags from earlier answers. A match answers 304.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success. An empty registry answers all-zero buckets, never 404",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Strong entity tag of the body. Every later answer with the same tag has the same bytes."
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/KeyspaceResponse"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "`If-None-Match` names the current body",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A query string, which this operation does not take",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -346,7 +427,7 @@
         "tags": [
           "registry"
         ],
-        "description": "Get a name's owner",
+        "summary": "Get a name's owner",
         "operationId": "get_name",
         "parameters": [
           {
@@ -418,7 +499,7 @@
         "tags": [
           "registry"
         ],
-        "description": "Get a name's key neighborhood",
+        "summary": "Get a name's key neighborhood",
         "operationId": "get_key_by_name",
         "parameters": [
           {
@@ -480,18 +561,15 @@
         "tags": [
           "registry"
         ],
-        "description": "Get an owner's names",
+        "summary": "Get an owner's names",
         "operationId": "get_owner",
         "parameters": [
           {
             "name": "ownerType",
             "in": "path",
-            "description": "Owner scheme byte in decimal: 0 p2pk-schnorr, 3 p2sh, 4 covenant, 133/134 p2pk-ecdsa",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int32",
-              "minimum": 0
+              "$ref": "#/components/schemas/OwnerType"
             }
           },
           {
@@ -500,7 +578,8 @@
             "description": "Owner payload: 64 hex characters",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
             }
           }
         ],
@@ -553,7 +632,7 @@
         "tags": [
           "snapshot"
         ],
-        "description": "Get the registry snapshot",
+        "summary": "Get the registry snapshot",
         "operationId": "get_snapshot",
         "parameters": [
           {
@@ -573,15 +652,42 @@
             "schema": {
               "type": "boolean"
             }
+          },
+          {
+            "name": "If-None-Match",
+            "in": "header",
+            "description": "Entity tags from earlier answers. A match answers 304.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
           "200": {
             "description": "The snapshot. `proven` says which kind it is",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Strong entity tag of the body. Every later answer with the same tag has the same bytes."
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Snapshot"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "`If-None-Match` names the current body",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
                 }
               }
             }
@@ -624,18 +730,15 @@
         "tags": [
           "registry"
         ],
-        "description": "Get the cards a spender can sweep",
+        "summary": "Get the cards a spender can sweep",
         "operationId": "get_spender_cards",
         "parameters": [
           {
             "name": "spenderType",
             "in": "path",
-            "description": "Key-owned scheme byte in decimal: 0 p2pk-schnorr, 133/134 p2pk-ecdsa",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int32",
-              "minimum": 0
+              "$ref": "#/components/schemas/SpenderType"
             }
           },
           {
@@ -644,7 +747,8 @@
             "description": "Spender key payload: 64 hex characters",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
             }
           },
           {
@@ -653,7 +757,8 @@
             "description": "The previous page's `next`. Absent for the first page.",
             "required": false,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}:(0|[1-9][0-9]*)$"
             }
           },
           {
@@ -664,7 +769,8 @@
             "schema": {
               "type": "integer",
               "format": "int32",
-              "minimum": 0
+              "maximum": 100,
+              "minimum": 1
             }
           }
         ],
@@ -746,6 +852,15 @@
           }
         }
       },
+      "CardChange": {
+        "type": "string",
+        "description": "What an event did to a name's card.",
+        "enum": [
+          "set",
+          "updated",
+          "deleted"
+        ]
+      },
       "CardOut": {
         "type": "object",
         "description": "One card: a name's records, as the indexer observed them minted.\n\nThe indexer proves nothing about a card. A reader proves one against its own node: a live\nUTXO sits at `cardAddress`, that UTXO is output 1 of the transaction that created the deed's\ncurrent UTXO, `blob` hashes to `recordsHash`, and `blob` is at most 16 KiB. The indexer checks\nthe last two before it serves a card.",
@@ -779,10 +894,7 @@
             "description": "Whether the card speaks for its name now. Always true on a name or owner lookup. A\nspender lookup also lists retired cards, which are left to sweep."
           },
           "name": {
-            "type": [
-              "string",
-              "null"
-            ],
+            "type": "string",
             "description": "The bare name the card's key belongs to. Absent only on a spender lookup where the key\nhas no row."
           },
           "outpointIndex": {
@@ -796,13 +908,10 @@
             "description": "The minting transfer."
           },
           "records": {
-            "type": [
-              "object",
-              "null"
-            ],
+            "type": "object",
             "description": "The decoded blob: ENSIP-5 text records, local flags such as `primary`, and opaque values\nthat a client keeps. Absent when the blob is not a record map.",
             "additionalProperties": {
-              "$ref": "#/components/schemas/RecordValueOut"
+              "$ref": "#/components/schemas/RecordValue"
             },
             "propertyNames": {
               "type": "string"
@@ -819,10 +928,8 @@
             "type": "string"
           },
           "spenderType": {
-            "type": "integer",
-            "format": "int32",
-            "description": "The key that can sweep the card: a key-owned scheme byte, its payload, and the address.",
-            "minimum": 0
+            "$ref": "#/components/schemas/SpenderType",
+            "description": "The key that can sweep the card: a key-owned scheme byte, its payload, and the address."
           },
           "value": {
             "type": "integer",
@@ -851,25 +958,20 @@
       },
       "DeedOut": {
         "type": "object",
-        "description": "One deed: the state its address hashes from, plus the provenance the indexer observed.\n\nThe address hashes from `status ‖ key ‖ ownerType ‖ owner ‖ name`, with `key` and the padded\n`name` taken from the enclosing [`KeyResponse`]. An ACTIVE deed carries `ownerType` and\n`owner`. A PENDING deed carries `claim` instead, because its owner slot holds the claim hash.",
+        "description": "One deed: the state its address hashes from, plus the provenance the indexer observed.\n\nThe address hashes from `status ‖ key ‖ ownerType ‖ owner ‖ name`, with `key` and the padded\n`name` taken from the enclosing `KeyResponse`. An ACTIVE deed carries `ownerType` and\n`owner`. A PENDING deed carries `claim` instead, because its owner slot holds the claim hash.",
         "required": [
           "status",
           "deedAddress"
         ],
         "properties": {
           "acceptedDaa": {
-            "type": [
-              "integer",
-              "null"
-            ],
+            "type": "integer",
             "format": "int64",
+            "description": "DAA score of the block that accepted the deed's split. It carries through activate and\ntransfer, so it is the registration time, and a PENDING deed is evictable at\n`acceptedDaa + tEvict`. Always present on a PENDING deed. Absent on an ACTIVE deed whose\nregistration this indexer did not observe.",
             "minimum": 0
           },
           "claim": {
-            "type": [
-              "string",
-              "null"
-            ],
+            "type": "string",
             "description": "PENDING only: the claim hash the split committed to. An evict needs it to rebuild\n`{PENDING, key, 0x00, claim, zero}`, and nothing public reveals it."
           },
           "deedAddress": {
@@ -877,41 +979,35 @@
             "description": "Where this deed lives: `P2SH(deed template ‖ the state above)`. A caller probes it against\nits own node."
           },
           "outpointIndex": {
-            "type": [
-              "integer",
-              "null"
-            ],
+            "type": "integer",
             "format": "int32",
+            "description": "Output index of the deed UTXO as last observed.",
             "minimum": 0
           },
           "outpointTxid": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "description": "The deed UTXO as last observed, and the DAA score of the block that accepted the deed's\nsplit. `acceptedDaa` carries through activate and transfer, so it is the registration\ntime, and a PENDING deed is evictable at `acceptedDaa + tEvict`. Absent when this indexer\nnever observed the split, or whose claim the chain refuted."
+            "type": "string",
+            "description": "Transaction of the deed UTXO as last observed. Absent when this indexer never observed\nthe split, or when the chain refuted its claim."
           },
           "owner": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": "string"
           },
           "ownerType": {
-            "type": [
-              "integer",
-              "null"
-            ],
-            "format": "int32",
-            "description": "ACTIVE only: the KCC-2 scheme byte and the owner payload it names.",
-            "minimum": 0
+            "$ref": "#/components/schemas/OwnerType",
+            "description": "ACTIVE only: the KCC-2 scheme byte and the owner payload it names."
           },
           "status": {
-            "type": "string",
-            "description": "The on-chain status, `Pending` or `Active`, that the address hashes from. Derive an\naddress from this, never from `kind`.",
-            "example": "Active"
+            "$ref": "#/components/schemas/DeedStatus",
+            "description": "The on-chain status that the address hashes from. Derive an address from this, never\nfrom `kind`."
           }
         }
+      },
+      "DeedStatus": {
+        "type": "string",
+        "description": "The on-chain status of a deed.",
+        "enum": [
+          "Pending",
+          "Active"
+        ]
       },
       "ErrorCode": {
         "type": "string",
@@ -977,9 +1073,7 @@
             "type": "string"
           },
           "spenderType": {
-            "type": "integer",
-            "format": "int32",
-            "minimum": 0
+            "$ref": "#/components/schemas/SpenderType"
           },
           "txid": {
             "type": "string"
@@ -1008,10 +1102,7 @@
             "minimum": 0
           },
           "sweptAt": {
-            "type": [
-              "integer",
-              "null"
-            ],
+            "type": "integer",
             "format": "int64",
             "minimum": 0
           },
@@ -1060,15 +1151,8 @@
             "type": "string"
           },
           "prev": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/ExportRow",
-                "description": "The deed pre-image. Absent means the row did not exist before the event."
-              }
-            ]
+            "$ref": "#/components/schemas/ExportRow",
+            "description": "The deed pre-image. Absent means the row did not exist before the event."
           },
           "prevCards": {
             "type": "array",
@@ -1097,27 +1181,18 @@
         ],
         "properties": {
           "hi": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": "string"
           },
           "lo": {
             "type": "string"
           },
           "outpointIndex": {
-            "type": [
-              "integer",
-              "null"
-            ],
+            "type": "integer",
             "format": "int32",
             "minimum": 0
           },
           "outpointTxid": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": "string"
           }
         }
       },
@@ -1128,63 +1203,38 @@
         ],
         "properties": {
           "acceptedDaa": {
-            "type": [
-              "integer",
-              "null"
-            ],
+            "type": "integer",
             "format": "int64",
             "minimum": 0
           },
           "claim": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": "string"
           },
           "kind": {
             "type": "integer",
             "format": "int32",
+            "description": "0 ACTIVE, 1 PENDING, 2 owner-unknown.",
             "minimum": 0
           },
           "name": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": "string"
           },
           "outpointIndex": {
-            "type": [
-              "integer",
-              "null"
-            ],
+            "type": "integer",
             "format": "int32",
             "minimum": 0
           },
           "outpointTxid": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": "string"
           },
           "owner": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": "string"
           },
           "ownerType": {
-            "type": [
-              "integer",
-              "null"
-            ],
-            "format": "int32",
-            "minimum": 0
+            "$ref": "#/components/schemas/OwnerType"
           },
           "value": {
-            "type": [
-              "integer",
-              "null"
-            ],
+            "type": "integer",
             "format": "int64",
             "minimum": 0
           }
@@ -1239,12 +1289,17 @@
         "type": "object",
         "required": [
           "healthy",
+          "lastBlock",
+          "tipBlueScore",
           "netBps",
           "active",
           "pending",
           "ownerUnknown",
+          "historySeq",
           "tipDistance",
+          "journalCoverage",
           "caughtUp",
+          "selfTest",
           "registryCovenantId",
           "network"
         ],
@@ -1255,7 +1310,7 @@
           },
           "caughtUp": {
             "type": "boolean",
-            "description": "Whether the indexer is level with the chain now: `lastBlock` is under 10 s old and under\n60 s of blocks behind `tipBlueScore - tipDistance`. Never latched. `healthy` tolerates\n10 s of `false`."
+            "description": "Whether the indexer is caught up with the chain now: `lastBlock` is under 10 s old and under\n60 s of blocks behind `tipBlueScore - tipDistance`. Never latched. `healthy` tolerates\n10 s of `false`."
           },
           "healthy": {
             "type": "boolean"
@@ -1280,10 +1335,10 @@
           "lastBlock": {
             "oneOf": [
               {
-                "type": "null"
+                "$ref": "#/components/schemas/BlockRef"
               },
               {
-                "$ref": "#/components/schemas/BlockRef"
+                "type": "null"
               }
             ]
           },
@@ -1313,24 +1368,17 @@
           "selfTest": {
             "oneOf": [
               {
-                "type": "null"
-              },
-              {
                 "$ref": "#/components/schemas/SelfTestSummary",
                 "description": "The last self-test's verdict, or `null` before the first run has finished."
+              },
+              {
+                "type": "null"
               }
             ]
           },
           "selfTestDetail": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/SelfTestDetail",
-                "description": "Where that run failed, present only for `?detail=true` and only once a run has finished."
-              }
-            ]
+            "$ref": "#/components/schemas/SelfTestDetail",
+            "description": "Where that run failed, present only for `?detail=true` and only once a run has finished."
           },
           "tipBlueScore": {
             "type": [
@@ -1368,75 +1416,69 @@
           "blockTime": {
             "type": "integer",
             "format": "int64",
+            "description": "Header timestamp of the accepting chain block, in ms.",
             "minimum": 0
           },
           "blueScore": {
             "type": "integer",
             "format": "int64",
-            "description": "The accepting chain block. `blockTime` is the header timestamp in ms. `daaScore` is the\nclock every age in this API uses.",
+            "description": "Blue score of the accepting chain block.",
             "minimum": 0
           },
           "cardChange": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "description": "What the event did to the name's card: `set`, `updated` or `deleted`. Absent when it\nleft the records alone."
+            "$ref": "#/components/schemas/CardChange",
+            "description": "Absent when the event left the records alone."
           },
           "claim": {
-            "type": [
-              "string",
-              "null"
-            ],
+            "type": "string",
             "description": "PENDING only: the claim hash the split committed to."
           },
           "daaScore": {
             "type": "integer",
             "format": "int64",
+            "description": "DAA score of the accepting chain block, the clock every age in this API uses.",
             "minimum": 0
           },
           "kind": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "description": "The row's kind after the event: `active`, `pending` or `ownerUnknown`. Absent when the\ndeed ended here."
+            "$ref": "#/components/schemas/RowKind",
+            "description": "The row's kind after the event. Absent when the deed ended here."
           },
           "name": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": "string"
           },
           "op": {
-            "type": "string",
-            "description": "`register` · `activate` · `transfer` · `release` · `evict` · `discover` · `sweep`.\nA `sweep` spends a card on its own and leaves the deed unchanged."
+            "$ref": "#/components/schemas/HistoryOp"
           },
           "owner": {
-            "type": [
-              "string",
-              "null"
-            ],
+            "type": "string",
             "description": "The KCC-2 owner payload, hex. Present only when the entry left the deed ACTIVE. No\naddress is served, because a client derives it from the pair."
           },
           "ownerType": {
-            "type": [
-              "integer",
-              "null"
-            ],
-            "format": "int32",
-            "minimum": 0
+            "$ref": "#/components/schemas/OwnerType"
           },
           "seq": {
             "type": "integer",
             "format": "int32",
-            "description": "Apply order within the accepting block. Entries in one block are served newest first\nby this."
+            "description": "Apply order within the accepting block."
           },
           "txid": {
             "type": "string",
             "description": "The transaction that made the change."
           }
         }
+      },
+      "HistoryOp": {
+        "type": "string",
+        "description": "What an event did to a key. A `sweep` spends a card on its own and leaves the deed\nunchanged.",
+        "enum": [
+          "register",
+          "activate",
+          "transfer",
+          "release",
+          "evict",
+          "discover",
+          "sweep"
+        ]
       },
       "HistoryResponse": {
         "type": "object",
@@ -1485,6 +1527,16 @@
           }
         }
       },
+      "KeyKind": {
+        "type": "string",
+        "description": "A row's kind, or `free` for a key without a row.",
+        "enum": [
+          "active",
+          "pending",
+          "ownerUnknown",
+          "free"
+        ]
+      },
       "KeyResponse": {
         "type": "object",
         "description": "Everything a client needs to act on one key: its deed and the gaps a transaction touching it\nmust co-spend.",
@@ -1496,61 +1548,34 @@
         ],
         "properties": {
           "covering": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/GapOut",
-                "description": "`free` only: the gap that strictly contains the key, which a split spends."
-              }
-            ]
+            "$ref": "#/components/schemas/GapOut",
+            "description": "`free` only: the gap that strictly contains the key, which a split spends."
           },
           "deed": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/DeedOut",
-                "description": "The key's own deed. Absent for `free` and `ownerUnknown`."
-              }
-            ]
+            "$ref": "#/components/schemas/DeedOut",
+            "description": "The key's own deed. Absent for `free` and `ownerUnknown`."
           },
           "key": {
             "type": "string"
           },
           "kind": {
-            "type": "string",
-            "description": "The indexer's row knowledge: `active`, `pending`, `ownerUnknown` or `free`. This is not\nthe on-chain status, and `ownerUnknown` has no on-chain counterpart. Read `deed.status`\nto derive an address."
+            "$ref": "#/components/schemas/KeyKind",
+            "description": "The indexer's row knowledge. This is not the on-chain status. Read `deed.status` to\nderive an address."
           },
           "name": {
-            "type": [
-              "string",
-              "null"
-            ],
+            "type": "string",
             "description": "The bare name. Absent when the row has none, which is always the case for PENDING."
           },
           "neighbours": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/NeighbourGaps",
-                "description": "Occupied keys only: the two gaps flanking the key. With the deed, they are all a release\nneeds. Never present together with `covering`."
-              }
-            ]
+            "$ref": "#/components/schemas/NeighbourGaps",
+            "description": "Occupied keys only: the two gaps flanking the key. With the deed, they are all a release\nneeds. Never present together with `covering`."
           },
           "proven": {
             "type": "boolean",
             "description": "Whether the last self-test passed and left no blind spot around this key. This is\ncoverage, not freshness: it is as old as that self-test, which finished at `provenAt`. A\nclient's own probe of the deed address remains the real check."
           },
           "provenAt": {
-            "type": [
-              "integer",
-              "null"
-            ],
+            "type": "integer",
             "format": "int64",
             "minimum": 0
           },
@@ -1599,7 +1624,8 @@
           "totals",
           "keysByPrefix",
           "gapsByWidth",
-          "registrationsByDay"
+          "registrationsByDay",
+          "lastBlock"
         ],
         "properties": {
           "gapsByWidth": {
@@ -1611,11 +1637,11 @@
           "lastBlock": {
             "oneOf": [
               {
-                "type": "null"
-              },
-              {
                 "$ref": "#/components/schemas/BlockRef",
                 "description": "The last processed chain block, which is what this answer is current to."
+              },
+              {
+                "type": "null"
               }
             ]
           },
@@ -1698,10 +1724,7 @@
                 "description": "A client that rebuilds the gap template and gets another hash refuses the manifest."
               },
               "genesisBinding": {
-                "type": [
-                  "object",
-                  "null"
-                ],
+                "type": "object",
                 "description": "The covenant id's full preimage: the outpoint the deployer spent, which output was the\ngenesis gap, and that output with its redeem script and state. A client can recompute the\nid and check the genesis output group had exactly one member, with no chain access."
               },
               "network": {
@@ -1717,10 +1740,7 @@
                 "description": "The registry's covenant id."
               },
               "version": {
-                "type": [
-                  "integer",
-                  "null"
-                ],
+                "type": "integer",
                 "format": "int32",
                 "description": "Manifest shape version. Absent means 0.",
                 "minimum": 0
@@ -1741,22 +1761,12 @@
         ],
         "properties": {
           "address": {
-            "type": [
-              "string",
-              "null"
-            ],
+            "type": "string",
             "description": "The owner as a Kaspa address. Absent only for a covenant-id owner (0x04)."
           },
           "card": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/CardOut",
-                "description": "The name's live card, if it has one."
-              }
-            ]
+            "$ref": "#/components/schemas/CardOut",
+            "description": "The name's live card, if it has one."
           },
           "deedAddress": {
             "type": "string",
@@ -1771,10 +1781,7 @@
             "description": "The raw owner payload, hex. For every scheme but 0x04 it is the owner address's payload."
           },
           "ownerType": {
-            "type": "integer",
-            "format": "int32",
-            "description": "Owner scheme byte: 0x00 p2pk-schnorr, 0x03 p2sh, 0x04 covenant, 0x85/0x86 p2pk-ecdsa\n(odd/even y).",
-            "minimum": 0
+            "$ref": "#/components/schemas/OwnerType"
           },
           "registryCovenantId": {
             "type": "string"
@@ -1809,10 +1816,7 @@
         ],
         "properties": {
           "address": {
-            "type": [
-              "string",
-              "null"
-            ],
+            "type": "string",
             "description": "The owner as a Kaspa address. Absent only for a covenant-id owner (0x04)."
           },
           "cards": {
@@ -1834,17 +1838,25 @@
             "description": "The raw owner payload, hex."
           },
           "ownerType": {
-            "type": "integer",
-            "format": "int32",
-            "description": "Owner scheme byte: 0x00 p2pk-schnorr, 0x03 p2sh, 0x04 covenant, 0x85/0x86 p2pk-ecdsa\n(odd/even y).",
-            "minimum": 0
+            "$ref": "#/components/schemas/OwnerType"
           },
           "registryCovenantId": {
             "type": "string"
           }
         }
       },
-      "RecordValueOut": {
+      "OwnerType": {
+        "type": "integer",
+        "description": "The owner scheme byte in decimal: 0 p2pk-schnorr, 3 p2sh, 4 covenant, 133/134 p2pk-ecdsa.",
+        "enum": [
+          0,
+          3,
+          4,
+          133,
+          134
+        ]
+      },
+      "RecordValue": {
         "oneOf": [
           {
             "type": "string"
@@ -1883,6 +1895,7 @@
           "bridged": {
             "type": "integer",
             "format": "int64",
+            "description": "Registered keys the table lacked, adopted as owner-unknown.",
             "minimum": 0
           },
           "cardsRestored": {
@@ -1905,6 +1918,7 @@
           "dropped": {
             "type": "integer",
             "format": "int64",
+            "description": "Rows removed because the chain shows their key unregistered.",
             "minimum": 0
           },
           "gapsSynced": {
@@ -1916,11 +1930,13 @@
           "iterations": {
             "type": "integer",
             "format": "int32",
+            "description": "Passes the repair took to converge.",
             "minimum": 0
           },
           "readopted": {
             "type": "integer",
             "format": "int64",
+            "description": "Registered keys the table lacked, adopted with their proven state.",
             "minimum": 0
           },
           "rewritten": {
@@ -1930,6 +1946,15 @@
             "minimum": 0
           }
         }
+      },
+      "RowKind": {
+        "type": "string",
+        "description": "The indexer's knowledge of a row. `ownerUnknown` has no on-chain counterpart.",
+        "enum": [
+          "active",
+          "pending",
+          "ownerUnknown"
+        ]
       },
       "SelfTestDetail": {
         "type": "object",
@@ -1957,7 +1982,7 @@
                 "type": "string"
               }
             },
-            "description": "Residual blind spots after repair, as [lo, hi] hex key brackets: keyspace whose\nregistrations this indexer never observed."
+            "description": "Residual blind spots after repair, as [lo, hi] hex key brackets: keyspace whose\nregistrations this indexer never observed, or a gap that failed only the last probe."
           },
           "blindSpotsOmitted": {
             "type": "integer",
@@ -1969,7 +1994,7 @@
             "items": {
               "type": "string"
             },
-            "description": "Outpoints that failed 3 times in a row, as `outpoint:<hex key>`. Failing gaps and deeds\nappear in `blindSpots` and `ownerUnknown` instead."
+            "description": "Outpoints that failed 3 times in a row or only the last probe, as `outpoint:<hex key>`.\nFailing gaps and deeds appear in `blindSpots` and `ownerUnknown` instead."
           },
           "failingOutpointsOmitted": {
             "type": "integer",
@@ -1984,7 +2009,7 @@
                 "type": "string"
               }
             },
-            "description": "Registered rows whose deed address is refuted, as [hex key, name]. Repair demotes these\nto owner-unknown, so an entry here means the pipeline kept touching the row."
+            "description": "Registered rows whose deed address is refuted, as [hex key, name]. Repair demotes these\nto owner-unknown, so an entry here means the pipeline kept touching the row or the\nrefutation came only in the last probe."
           },
           "ownerUnknownOmitted": {
             "type": "integer",
@@ -2009,7 +2034,7 @@
       },
       "SelfTestSummary": {
         "type": "object",
-        "description": "The last self-test's verdict, served on every `/health`. The failure coordinates are in\n[`SelfTestDetail`], served only on request, because pages poll this body.",
+        "description": "The last self-test's verdict, served on every `/health`. The failure coordinates are in\n`SelfTestDetail`, served only on request, because pages poll this body.",
         "required": [
           "proven",
           "startedMs",
@@ -2027,6 +2052,7 @@
           "finishedMs": {
             "type": "integer",
             "format": "int64",
+            "description": "Wall-clock unix ms at which the run ended.",
             "minimum": 0
           },
           "gapsChecked": {
@@ -2041,7 +2067,7 @@
           "startedMs": {
             "type": "integer",
             "format": "int64",
-            "description": "Wall-clock unix ms of the run's start and end.",
+            "description": "Wall-clock unix ms at which the run started.",
             "minimum": 0
           }
         }
@@ -2049,8 +2075,10 @@
       "Snapshot": {
         "type": "object",
         "required": [
+          "proven",
           "registryCovenantId",
           "vcpCheckpoint",
+          "historySeq",
           "deeds",
           "events"
         ],
@@ -2080,17 +2108,14 @@
               "null"
             ],
             "format": "int64",
-            "description": "The `max(history.id)` that `/health` publishes, read in the same transaction as the rows.\nIt tells a polling client which registry state it received. History ids are local to one\nindexer, so this is outside the canonical core, and `import` ignores it.\n\nSerialized even when null, to match `/health`. A browser reads an absent field as\n`undefined`, which never equals `null`, and a polling client then downloads the snapshot\nagain on every refresh."
+            "description": "The `max(history.id)` that `/health` publishes, read in the same transaction as the rows.\nIt tells a polling client which registry state it received. History ids are local to one\nindexer, so this is outside the canonical core, and an importer ignores it."
           },
           "proven": {
             "type": "boolean",
-            "description": "Set by the self-test that proved this snapshot against the UTXO set. This field and\n`provenAt` are outside the canonical core, and `import` ignores both."
+            "description": "Set by the self-test that proved this snapshot against the UTXO set. This field and\n`provenAt` are outside the canonical core, and an importer ignores both."
           },
           "provenAt": {
-            "type": [
-              "integer",
-              "null"
-            ],
+            "type": "integer",
             "format": "int64",
             "description": "The producing self-test's `finishedMs`.",
             "minimum": 0
@@ -2125,10 +2150,7 @@
             "description": "One page, in outpoint order."
           },
           "next": {
-            "type": [
-              "string",
-              "null"
-            ],
+            "type": "string",
             "description": "The `after` of the next page, `{txid}:{index}`. Absent on the last page."
           },
           "registryCovenantId": {
@@ -2138,11 +2160,18 @@
             "type": "string"
           },
           "spenderType": {
-            "type": "integer",
-            "format": "int32",
-            "minimum": 0
+            "$ref": "#/components/schemas/SpenderType"
           }
         }
+      },
+      "SpenderType": {
+        "type": "integer",
+        "description": "A key-owned scheme byte in decimal: 0 p2pk-schnorr, 133/134 p2pk-ecdsa.",
+        "enum": [
+          0,
+          133,
+          134
+        ]
       }
     }
   },

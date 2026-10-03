@@ -11,7 +11,7 @@
       "name": "AGPL-3.0-only",
       "url": "https://www.gnu.org/licenses/agpl-3.0.html"
     },
-    "version": "1.0.0"
+    "version": "1.1.0"
   },
   "servers": [
     {
@@ -186,6 +186,82 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/history": {
+      "get": {
+        "tags": [
+          "registry"
+        ],
+        "summary": "Follow this indexer's history",
+        "operationId": "get_history",
+        "parameters": [
+          {
+            "name": "after",
+            "in": "query",
+            "description": "The last `historySeq` that the reader holds, in plain decimal. Leave it out, or pass 0, for the first page.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Entries per page. It accepts only 100, which is the default.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "maximum": 100,
+              "minimum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. A page of history across every key, in apply order, with `next` while more follow. Past the newest entry, the page is empty",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistoryFeedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An `after` or `limit` that this operation refuses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Reading the database failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No self-test verdict yet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -1401,6 +1477,8 @@
         "type": "object",
         "description": "One event on a key, and the deed's state right after it. `kind` is absent when the event\nended the deed (a release or an evict).",
         "required": [
+          "historySeq",
+          "key",
           "op",
           "seq",
           "blueScore",
@@ -1439,6 +1517,16 @@
             "description": "DAA score of the accepting chain block, the clock every age in this API uses.",
             "minimum": 0
           },
+          "historySeq": {
+            "type": "integer",
+            "format": "int64",
+            "description": "This indexer's number for the entry. Within one `historyEpoch`, an entry applied later has a\nhigher number. The number means nothing on another indexer.",
+            "minimum": 1
+          },
+          "key": {
+            "type": "string",
+            "description": "The name key, `blake3(name)` in 64 hex characters."
+          },
           "kind": {
             "$ref": "#/components/schemas/RowKind",
             "description": "The row's kind after the event. Absent when the deed ended here."
@@ -1456,6 +1544,10 @@
           "ownerType": {
             "$ref": "#/components/schemas/OwnerType"
           },
+          "payload": {
+            "type": "string",
+            "description": "The transaction payload of `txid`, hex, empty when it has none. Only `/history` serves it,\non the entry of the transaction's own operation. A discover or a sweep entry carries none,\nand neither does an entry that an indexer before 1.1.0 recorded."
+          },
           "seq": {
             "type": "integer",
             "format": "int32",
@@ -1464,6 +1556,36 @@
           "txid": {
             "type": "string",
             "description": "The transaction that made the change."
+          }
+        }
+      },
+      "HistoryFeedResponse": {
+        "type": "object",
+        "description": "The feed serves this indexer's history across every key, in apply order, one page at a time. It\nholds what this indexer observed, from the point where it began to observe. A reader follows it\nby passing the last `historySeq` that it holds as `after`. An entry that a reorg applies gets a\nhigher `historySeq` than every earlier entry. A reorg can remove the entries of the blocks that\nit drops. A self-test repair changes rows and writes no entry. No page announces a removed entry\nor a repair. A reader that keeps state must make sure that the state holds against a node, or\nstart again from `/snapshot`.",
+        "required": [
+          "historyEpoch",
+          "entries",
+          "registryCovenantId"
+        ],
+        "properties": {
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HistoryEntry"
+            }
+          },
+          "historyEpoch": {
+            "type": "string",
+            "description": "A random tag that names this run's numbering of `historySeq`. The indexer writes a new one\nat every start, a start on a restored database included. Every `historySeq` of an old epoch\nmeans nothing, so a reader that sees the epoch change must start again from `/snapshot`."
+          },
+          "next": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The `after` of the next page. It is absent on the last page. A page ends early, and carries\n`next`, before the transaction payload that takes its raw payload bytes past 1 MiB. The\nfirst entry of a page always stays.",
+            "minimum": 1
+          },
+          "registryCovenantId": {
+            "type": "string"
           }
         }
       },
@@ -2081,6 +2203,7 @@
           "registryCovenantId",
           "vcpCheckpoint",
           "historySeq",
+          "historyEpoch",
           "deeds",
           "events"
         ],
@@ -2103,6 +2226,13 @@
             "items": {
               "$ref": "#/components/schemas/ExportEvent"
             }
+          },
+          "historyEpoch": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The `historyEpoch` of `/history`, from the same transaction as `historySeq`. It is outside\nthe canonical core, and an importer ignores it."
           },
           "historySeq": {
             "type": [
